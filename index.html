@@ -147,7 +147,6 @@
             color: var(--text-color);
         }
 
-        /* --- COMPACT DASHBOARD CHARTS --- */
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -377,7 +376,6 @@
             font-weight: bold;
         }
 
-        /* Event Badges */
         .event-badge {
             background: var(--primary);
             color: white;
@@ -390,7 +388,6 @@
             cursor: pointer;
         }
 
-        /* Album Due Date Badges */
         .album-badge {
             background: #2563eb;
             color: white;
@@ -548,6 +545,10 @@
             <form id="eventForm" onsubmit="addEvent(event)">
                 <div class="form-grid">
                     <div class="form-group">
+                        <label>Booking Date (Created Date) *</label>
+                        <input type="date" id="createdDate" required>
+                    </div>
+                    <div class="form-group">
                         <label>Event Name *</label>
                         <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
                     </div>
@@ -617,6 +618,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>Booking Date</th>
                             <th>Event Name</th>
                             <th>Wedding Date</th>
                             <th>Client</th>
@@ -666,7 +668,6 @@
             <button class="btn" onclick="changeMonth(1)" style="margin: 0;">Next ▶</button>
         </div>
 
-        <!-- Calendar Legend -->
         <div class="calendar-legend">
             <div class="legend-item">
                 <div class="legend-box" style="background: var(--primary);"></div>
@@ -700,6 +701,10 @@
             <form id="editForm" onsubmit="saveModalChanges(event)">
                 <input type="hidden" id="modalEventId">
                 <div class="form-grid">
+                    <div class="form-group">
+                        <label>Booking Date (Created Date)</label>
+                        <input type="date" id="mCreatedDate" required>
+                    </div>
                     <div class="form-group">
                         <label>Event Name</label>
                         <input type="text" id="mEventName" required>
@@ -755,6 +760,7 @@
         const INITIAL_EVENTS = [
             {
                 id: 1,
+                createdDate: "2026-04-10",
                 eventName: "Arshas Marriage",
                 weddingDate: "2026-06-10",
                 channel: "Direct studio",
@@ -775,6 +781,7 @@
             },
             {
                 id: 2,
+                createdDate: "2026-03-15",
                 eventName: "Chikus Wedding",
                 weddingDate: "2026-05-01",
                 channel: "Phone call",
@@ -795,6 +802,7 @@
             },
             {
                 id: 3,
+                createdDate: "2026-05-01",
                 eventName: "Rohan & Priya Reception",
                 weddingDate: "2026-08-15",
                 channel: "Instagram",
@@ -815,6 +823,7 @@
             },
             {
                 id: 4,
+                createdDate: "2026-08-01",
                 eventName: "raju wedding",
                 weddingDate: "2026-08-28",
                 channel: "Direct studio",
@@ -838,6 +847,9 @@
         let events = JSON.parse(localStorage.getItem('studio_events')) || INITIAL_EVENTS;
         let currentCalendarDate = new Date();
         let chartInstances = {};
+
+        // Default today's date in form input
+        document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
 
         function addDays(dateStr, days) {
             if (!dateStr) return '';
@@ -880,6 +892,7 @@
 
             const newEvent = {
                 id: Date.now(),
+                createdDate: document.getElementById('createdDate').value || new Date().toISOString().split('T')[0],
                 eventName: document.getElementById('eventName').value,
                 weddingDate: wDate,
                 channel: document.getElementById('channel').value,
@@ -902,6 +915,7 @@
             events.unshift(newEvent);
             saveAndRender();
             document.getElementById('eventForm').reset();
+            document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
         }
 
         function cancelEventPrompt(id, e) {
@@ -940,6 +954,7 @@
             if (!ev) return;
 
             document.getElementById('modalEventId').value = ev.id;
+            document.getElementById('mCreatedDate').value = ev.createdDate || new Date().toISOString().split('T')[0];
             document.getElementById('mEventName').value = ev.eventName;
             document.getElementById('mStatus').value = ev.statusProgress || 'BOOKED';
             document.getElementById('mCancelReason').value = ev.cancelReason || '';
@@ -967,6 +982,7 @@
             const id = parseInt(document.getElementById('modalEventId').value);
             const ev = events.find(item => item.id === id);
             if (ev) {
+                ev.createdDate = document.getElementById('mCreatedDate').value;
                 ev.eventName = document.getElementById('mEventName').value;
                 ev.statusProgress = document.getElementById('mStatus').value;
                 ev.cancelReason = ev.statusProgress === 'CANCELED' ? document.getElementById('mCancelReason').value : '';
@@ -1015,6 +1031,7 @@
                 const isCanceled = e.statusProgress === 'CANCELED';
 
                 tr.innerHTML = `
+                    <td>${e.createdDate || '-'}</td>
                     <td><strong>${e.eventName}</strong></td>
                     <td>${e.weddingDate || '-'}</td>
                     <td>${e.clientName || '-'}</td>
@@ -1087,7 +1104,6 @@
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 cell.innerHTML = `<span class="day-num">${d}</span>`;
 
-                // 1. Check for Wedding Date Match
                 const weddingEvents = events.filter(e => e.weddingDate === dateStr);
                 weddingEvents.forEach(ev => {
                     const badge = document.createElement('div');
@@ -1098,7 +1114,6 @@
                     cell.appendChild(badge);
                 });
 
-                // 2. Check for Album Due Date Match
                 const albumEvents = events.filter(e => e.albumDueDate === dateStr);
                 albumEvents.forEach(ev => {
                     const badge = document.createElement('div');
@@ -1113,19 +1128,24 @@
             }
         }
 
-        /* --- STYLISH GRADIENT AREA CHARTS --- */
+        /* --- STYLISH GRADIENT AREA CHARTS WITH REAL-TIME PURGE --- */
         function renderCharts() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const textColor = isDark ? '#f8fafc' : '#1e293b';
             const gridColor = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
 
+            // Destroy existing chart instances completely to reflect deletes properly
+            if (chartInstances.status) chartInstances.status.destroy();
+            if (chartInstances.revenue) chartInstances.revenue.destroy();
+            if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
+
+            // 1. Status Breakdown
             const statusCounts = {};
             events.forEach(e => {
                 const st = e.statusProgress || 'BOOKED';
                 statusCounts[st] = (statusCounts[st] || 0) + 1;
             });
 
-            if (chartInstances.status) chartInstances.status.destroy();
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             chartInstances.status = new Chart(ctxStatus, {
                 type: 'doughnut',
@@ -1150,6 +1170,7 @@
                 }
             });
 
+            // Aggregate events per month dynamically
             const monthlyData = {};
             events.forEach(e => {
                 if (!e.weddingDate) return;
@@ -1169,9 +1190,8 @@
 
             const sortedMonths = Object.keys(monthlyData).sort();
 
-            if (chartInstances.revenue) chartInstances.revenue.destroy();
+            // 2. Financial Trend
             const ctxRev = document.getElementById('revenueChart').getContext('2d');
-            
             const gradRev = ctxRev.createLinearGradient(0, 0, 0, 140);
             gradRev.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
             gradRev.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
@@ -1225,12 +1245,13 @@
                 }
             });
 
-            if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
+            // 3. Monthly Events Count Trend
             const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
-            
             const gradEvents = ctxEv.createLinearGradient(0, 0, 0, 140);
             gradEvents.addColorStop(0, 'rgba(245, 158, 11, 0.5)');
             gradEvents.addColorStop(1, 'rgba(245, 158, 11, 0.02)');
+
+            const maxVal = sortedMonths.length > 0 ? Math.max(...sortedMonths.map(m => monthlyData[m].count)) : 1;
 
             chartInstances.monthlyEvents = new Chart(ctxEv, {
                 type: 'line',
@@ -1259,8 +1280,8 @@
                         y: { 
                             ticks: { color: textColor, precision: 0, font: { size: 10 } }, 
                             grid: { color: gridColor },
-                            suggestedMin: 0,
-                            suggestedMax: Math.max(...sortedMonths.map(m => monthlyData[m].count), 1) + 1
+                            beginAtZero: true,
+                            suggestedMax: maxVal + 1
                         }
                     },
                     plugins: {
