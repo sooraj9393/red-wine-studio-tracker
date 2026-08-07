@@ -279,7 +279,6 @@
             background-color: var(--input-bg);
         }
 
-        /* Delivered Row Highlight styling */
         tr.row-delivered {
             background-color: var(--delivered-bg) !important;
             border-left: 4px solid var(--delivered-border);
@@ -311,17 +310,6 @@
 
         .actions-btn {
             background: #ef4444;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.75rem;
-        }
-
-        .cancel-btn {
-            background: #f59e0b;
             color: white;
             border: none;
             padding: 6px 10px;
@@ -378,7 +366,7 @@
         .calendar-cell {
             background: var(--input-bg);
             border: 1px solid var(--border-color);
-            min-height: 95px;
+            min-height: 105px;
             padding: 6px;
             border-radius: 6px;
             display: flex;
@@ -396,7 +384,7 @@
         .event-badge {
             background: var(--primary);
             color: white;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             padding: 3px 5px;
             border-radius: 4px;
             white-space: nowrap;
@@ -413,6 +401,13 @@
             background: #991b1b;
             text-decoration: line-through;
             opacity: 0.8;
+        }
+
+        /* Album Due Date Badge Styling */
+        .event-badge.album-due {
+            background: #7c3aed;
+            color: #ffffff;
+            font-weight: 600;
         }
 
         .modal-overlay {
@@ -457,7 +452,6 @@
             cursor: pointer;
         }
 
-        /* Payment Ledger Box */
         .payments-box {
             background: var(--input-bg);
             border: 1px solid var(--border-color);
@@ -520,7 +514,6 @@
         </button>
     </header>
 
-    <!-- Navigation Tabs -->
     <div class="tab-buttons">
         <button class="tab-btn active" onclick="switchTab('trackerTab')">📋 Studio Dashboard & Events</button>
         <button class="tab-btn" onclick="switchTab('pendingTab')">⏳ Pending Deliverables</button>
@@ -561,13 +554,13 @@
                     </div>
                 </div>
                 <div class="chart-box">
-                    <h3>💰 Financial Trend</h3>
+                    <h3>💰 Financial Trend (Area Graph)</h3>
                     <div class="chart-wrapper">
                         <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-box">
-                    <h3>📅 Monthly Booked Events</h3>
+                    <h3>📅 Monthly Booked Events (Area Graph)</h3>
                     <div class="chart-wrapper">
                         <canvas id="monthlyEventsChart"></canvas>
                     </div>
@@ -727,7 +720,7 @@
         <div class="calendar-grid" id="calendarGrid" style="margin-top: 5px;"></div>
     </div>
 
-    <!-- Editable Event & Payment Ledger Modal -->
+    <!-- Edit Event & Payment Modal -->
     <div class="modal-overlay" id="eventModal" onclick="closeModalOnOverlay(event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -784,7 +777,6 @@
                     </div>
                 </div>
 
-                <!-- Payment Ledger Section -->
                 <div class="payments-box">
                     <h4>
                         💳 Payment Installments Ledger
@@ -835,7 +827,6 @@
         let currentCalendarDate = new Date();
         let chartInstances = {};
 
-        // Auto-fix older event data structures missing payments array
         events.forEach(ev => {
             if (!ev.payments) {
                 ev.payments = [];
@@ -963,7 +954,6 @@
             document.getElementById('mVideoDueDate').value = ev.videoDueDate || '';
             document.getElementById('mOverallCost').value = ev.overallCost || 0;
 
-            // Render Payment Rows
             const container = document.getElementById('paymentRowsContainer');
             container.innerHTML = '';
             (ev.payments || []).forEach(p => addPaymentRow(p.amount, p.date, p.mode, p.ref));
@@ -1037,7 +1027,6 @@
                 ev.videoDueDate = document.getElementById('mVideoDueDate').value;
                 ev.overallCost = parseFloat(document.getElementById('mOverallCost').value) || 0;
 
-                // Collect Payment Rows
                 const rows = document.querySelectorAll('.payment-row');
                 ev.payments = [];
                 rows.forEach(r => {
@@ -1170,6 +1159,7 @@
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 cell.innerHTML = `<span class="day-num">${d}</span>`;
 
+                // Render Wedding Events
                 const weddingEvents = events.filter(e => e.weddingDate === dateStr);
                 weddingEvents.forEach(ev => {
                     const badge = document.createElement('div');
@@ -1177,6 +1167,16 @@
                     const isCanceled = ev.statusProgress === 'CANCELED';
                     badge.className = `event-badge ${isDelivered ? 'delivered' : (isCanceled ? 'canceled' : '')}`;
                     badge.innerText = `💍 ${ev.eventName}`;
+                    badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
+                    cell.appendChild(badge);
+                });
+
+                // Render Album Due Dates in Calendar
+                const albumDueEvents = events.filter(e => e.albumDueDate === dateStr);
+                albumDueEvents.forEach(ev => {
+                    const badge = document.createElement('div');
+                    badge.className = `event-badge album-due`;
+                    badge.innerText = `📖 Album Due: ${ev.eventName}`;
                     badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
                     cell.appendChild(badge);
                 });
@@ -1236,14 +1236,29 @@
 
             const sortedMonths = Object.keys(monthlyData).sort();
 
+            // Financial Trend Area Chart
             const ctxRev = document.getElementById('revenueChart').getContext('2d');
             chartInstances.revenue = new Chart(ctxRev, {
                 type: 'line',
                 data: {
                     labels: sortedMonths,
                     datasets: [
-                        { label: 'Overall Cost', data: sortedMonths.map(m => monthlyData[m].revenue), borderColor: '#3b82f6', tension: 0.3 },
-                        { label: 'Total Collected', data: sortedMonths.map(m => monthlyData[m].collected), borderColor: '#10b981', tension: 0.3 }
+                        { 
+                            label: 'Overall Cost', 
+                            data: sortedMonths.map(m => monthlyData[m].revenue), 
+                            borderColor: '#3b82f6', 
+                            backgroundColor: 'rgba(59, 130, 246, 0.25)', 
+                            fill: true,
+                            tension: 0.3 
+                        },
+                        { 
+                            label: 'Total Collected', 
+                            data: sortedMonths.map(m => monthlyData[m].collected), 
+                            borderColor: '#10b981', 
+                            backgroundColor: 'rgba(16, 185, 129, 0.25)', 
+                            fill: true,
+                            tension: 0.3 
+                        }
                     ]
                 },
                 options: {
@@ -1257,6 +1272,7 @@
                 }
             });
 
+            // Monthly Booked Events Area Chart
             const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
             chartInstances.monthlyEvents = new Chart(ctxEv, {
                 type: 'line',
@@ -1266,6 +1282,8 @@
                         label: 'Events',
                         data: sortedMonths.map(m => monthlyData[m].count),
                         borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.25)',
+                        fill: true,
                         tension: 0.3
                     }]
                 },
