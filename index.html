@@ -362,12 +362,13 @@
         .calendar-cell {
             background: var(--input-bg);
             border: 1px solid var(--border-color);
-            min-height: 80px;
+            min-height: 95px;
             padding: 6px;
             border-radius: 6px;
             display: flex;
             flex-direction: column;
             gap: 4px;
+            overflow-y: auto;
         }
 
         .calendar-cell .day-num {
@@ -376,6 +377,7 @@
             font-weight: bold;
         }
 
+        /* Event Badges */
         .event-badge {
             background: var(--primary);
             color: white;
@@ -388,9 +390,43 @@
             cursor: pointer;
         }
 
-        .event-badge.canceled {
+        /* Album Due Date Badges */
+        .album-badge {
+            background: #2563eb;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .event-badge.canceled, .album-badge.canceled {
             background: #991b1b;
             text-decoration: line-through;
+            opacity: 0.8;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
         }
 
         .modal-overlay {
@@ -461,11 +497,10 @@
     <!-- Tab 1: Studio Dashboard + Events -->
     <div id="trackerTab" class="tab-content">
 
-        <!-- 1. STUDIO ANALYTICS DASHBOARD (ABOVE CREATE EVENT) -->
+        <!-- 1. STUDIO ANALYTICS DASHBOARD -->
         <div class="section-card">
             <h2>📊 Studio Analytics Dashboard</h2>
             
-            <!-- Key Metric Stat Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <h4>Total Events</h4>
@@ -485,7 +520,6 @@
                 </div>
             </div>
 
-            <!-- Modern Area Graphs -->
             <div class="charts-grid">
                 <div class="chart-box">
                     <h3>📌 Status Breakdown</h3>
@@ -631,6 +665,19 @@
             <h2 id="calendarMonthTitle">Month Year</h2>
             <button class="btn" onclick="changeMonth(1)" style="margin: 0;">Next ▶</button>
         </div>
+
+        <!-- Calendar Legend -->
+        <div class="calendar-legend">
+            <div class="legend-item">
+                <div class="legend-box" style="background: var(--primary);"></div>
+                <span>💍 Wedding Event</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #2563eb;"></div>
+                <span>📸 Album Due Date</span>
+            </div>
+        </div>
+
         <div class="calendar-grid" id="calendarHead">
             <div class="calendar-day-head">Sun</div>
             <div class="calendar-day-head">Mon</div>
@@ -762,6 +809,26 @@
                 preWedDate: "2026-07-10",
                 albumDueDate: "2026-09-14",
                 videoDueDate: "2026-09-14",
+                statusProgress: "BOOKED",
+                cancelReason: "",
+                slaAllowed: 30
+            },
+            {
+                id: 4,
+                eventName: "raju wedding",
+                weddingDate: "2026-08-28",
+                channel: "Direct studio",
+                owner: "Neeraj D Raj",
+                package: "Full Wedding Coverage",
+                addonPackage: "",
+                clientName: "Raju",
+                clientPhone: "",
+                overallCost: 50000,
+                advancePaid: 10000,
+                cameraTeam: "",
+                preWedDate: "",
+                albumDueDate: "2026-09-27",
+                videoDueDate: "2026-09-27",
                 statusProgress: "BOOKED",
                 cancelReason: "",
                 slaAllowed: 30
@@ -1020,12 +1087,24 @@
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 cell.innerHTML = `<span class="day-num">${d}</span>`;
 
-                const dayEvents = events.filter(e => e.weddingDate === dateStr);
-                dayEvents.forEach(ev => {
+                // 1. Check for Wedding Date Match
+                const weddingEvents = events.filter(e => e.weddingDate === dateStr);
+                weddingEvents.forEach(ev => {
                     const badge = document.createElement('div');
                     const isCanceled = ev.statusProgress === 'CANCELED';
                     badge.className = `event-badge ${isCanceled ? 'canceled' : ''}`;
-                    badge.innerText = isCanceled ? `[Canceled] ${ev.eventName}` : ev.eventName;
+                    badge.innerText = isCanceled ? `[Canceled] 💍 ${ev.eventName}` : `💍 ${ev.eventName}`;
+                    badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
+                    cell.appendChild(badge);
+                });
+
+                // 2. Check for Album Due Date Match
+                const albumEvents = events.filter(e => e.albumDueDate === dateStr);
+                albumEvents.forEach(ev => {
+                    const badge = document.createElement('div');
+                    const isCanceled = ev.statusProgress === 'CANCELED';
+                    badge.className = `album-badge ${isCanceled ? 'canceled' : ''}`;
+                    badge.innerText = isCanceled ? `[Canceled] 📸 ${ev.eventName}` : `📸 Album Due: ${ev.eventName}`;
                     badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
                     cell.appendChild(badge);
                 });
@@ -1040,7 +1119,6 @@
             const textColor = isDark ? '#f8fafc' : '#1e293b';
             const gridColor = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
 
-            // 1. Status Breakdown (Doughnut)
             const statusCounts = {};
             events.forEach(e => {
                 const st = e.statusProgress || 'BOOKED';
@@ -1072,7 +1150,6 @@
                 }
             });
 
-            // Monthly Aggregations (Active Events Only)
             const monthlyData = {};
             events.forEach(e => {
                 if (!e.weddingDate) return;
@@ -1092,7 +1169,6 @@
 
             const sortedMonths = Object.keys(monthlyData).sort();
 
-            // 2. Financial Trend (Area Chart)
             if (chartInstances.revenue) chartInstances.revenue.destroy();
             const ctxRev = document.getElementById('revenueChart').getContext('2d');
             
@@ -1149,7 +1225,6 @@
                 }
             });
 
-            // 3. Booked Trend (Stylish Area Graph)
             if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
             const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
             
