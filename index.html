@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Red Wine Studio - Event Tracker</title>
+    <!-- Chart.js CDN for Interactive Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root[data-theme="light"] {
             --bg-color: #f4f6f9;
@@ -19,7 +21,7 @@
             --badge-bg: #e0e7ff;
             --badge-text: #3730a3;
             --modal-overlay: rgba(0, 0, 0, 0.5);
-            --calendar-hover: #e2e8f0;
+            --chart-grid: #e2e8f0;
         }
 
         :root[data-theme="dark"] {
@@ -36,7 +38,7 @@
             --badge-bg: #312e81;
             --badge-text: #c7d2fe;
             --modal-overlay: rgba(0, 0, 0, 0.75);
-            --calendar-hover: #334155;
+            --chart-grid: #334155;
         }
 
         * {
@@ -236,6 +238,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
@@ -252,6 +255,29 @@
             background: var(--primary);
             color: white;
             border-color: var(--primary);
+        }
+
+        /* Graph Grid Layout */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-box {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 10px;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .chart-box h3 {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: var(--text-color);
+            text-align: center;
         }
 
         /* Calendar Styling */
@@ -448,6 +474,7 @@
     <!-- Interactive Views Navigation -->
     <div class="tab-buttons">
         <button class="tab-btn active" onclick="switchTab('trackerTab')">📋 All Events Tracker</button>
+        <button class="tab-btn" onclick="switchTab('analyticsTab')">📊 Analytics & Graphs</button>
         <button class="tab-btn" onclick="switchTab('pendingTab')">⏳ What's Pending Today?</button>
         <button class="tab-btn" onclick="switchTab('calendarTab')">📅 Event Calendar View</button>
     </div>
@@ -480,7 +507,26 @@
         </div>
     </div>
 
-    <!-- Tab 2: What's Pending Today -->
+    <!-- Tab 2: Analytics & Graphs -->
+    <div id="analyticsTab" class="section-card tab-content" style="display: none;">
+        <h2>📊 Performance Analytics & Revenue Graphs</h2>
+        <div class="charts-grid">
+            <div class="chart-box">
+                <h3>📌 Event Status Breakdown</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>💰 Monthly Financials (Revenue vs Pending)</h3>
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>📅 Events Booked Per Month</h3>
+                <canvas id="monthlyEventsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: What's Pending Today -->
     <div id="pendingTab" class="section-card tab-content" style="display: none;">
         <h2>⏳ Pending Deliverables & Follow-ups</h2>
         <div class="table-container">
@@ -501,7 +547,7 @@
         </div>
     </div>
 
-    <!-- Tab 3: Interactive Calendar View -->
+    <!-- Tab 4: Interactive Calendar View -->
     <div id="calendarTab" class="section-card tab-content" style="display: none;">
         <div class="calendar-header">
             <button class="btn" onclick="changeMonth(-1)" style="margin: 0;">◀ Prev</button>
@@ -591,7 +637,7 @@
                 overallCost: 25000,
                 advancePaid: 1000,
                 cameraTeam: "",
-                preWedDate: "2026-07-20",
+                preWedDate: "2026-05-20",
                 albumDueDate: "2026-07-10",
                 videoDueDate: "2026-07-10",
                 statusProgress: "BOOKED",
@@ -610,9 +656,28 @@
                 overallCost: 40000,
                 advancePaid: 2000,
                 cameraTeam: "",
-                preWedDate: "2026-08-01",
+                preWedDate: "2026-04-15",
                 albumDueDate: "2026-05-31",
                 videoDueDate: "2026-05-31",
+                statusProgress: "EDITING DONE",
+                slaAllowed: 30
+            },
+            {
+                id: 3,
+                eventName: "Rohan & Priya Reception",
+                weddingDate: "2026-08-15",
+                channel: "Instagram",
+                owner: "Neeraj D Raj",
+                package: "Full Wedding Coverage",
+                addonPackage: "Heli-Cam, LED Wall",
+                clientName: "Rohan Verma",
+                clientPhone: "+91 9811223344",
+                overallCost: 85000,
+                advancePaid: 15000,
+                cameraTeam: "Alpha Crew",
+                preWedDate: "2026-07-10",
+                albumDueDate: "2026-09-14",
+                videoDueDate: "2026-09-14",
                 statusProgress: "BOOKED",
                 slaAllowed: 30
             }
@@ -620,6 +685,7 @@
 
         let events = JSON.parse(localStorage.getItem('studio_events')) || INITIAL_EVENTS;
         let currentCalendarDate = new Date();
+        let chartInstances = {};
 
         function addDays(dateStr, days) {
             if (!dateStr) return '';
@@ -634,6 +700,7 @@
             renderPending();
             renderCalendar();
             updateStats();
+            renderCharts();
         }
 
         function toggleTheme() {
@@ -644,6 +711,7 @@
             document.getElementById('theme-icon').textContent = newTheme === 'light' ? '☀️' : '🌙';
             document.getElementById('theme-text').textContent = newTheme === 'light' ? 'Light Mode' : 'Dark Mode';
             localStorage.setItem('theme', newTheme);
+            renderCharts();
         }
 
         function loadSavedTheme() {
@@ -739,6 +807,9 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tabId).style.display = 'block';
             event.target.classList.add('active');
+            if (tabId === 'analyticsTab') {
+                renderCharts();
+            }
         }
 
         function updateStats() {
@@ -843,7 +914,118 @@
             }
         }
 
-        // Initialize
+        /* --- Chart Rendering Logic --- */
+        function renderCharts() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#f8fafc' : '#1e293b';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+            // 1. Status Doughnut Chart
+            const statusCounts = {};
+            events.forEach(e => {
+                const st = e.statusProgress || 'BOOKED';
+                statusCounts[st] = (statusCounts[st] || 0) + 1;
+            });
+
+            if (chartInstances.status) chartInstances.status.destroy();
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            chartInstances.status = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+
+            // Aggregate Data by Month (YYYY-MM)
+            const monthlyData = {};
+            events.forEach(e => {
+                if (!e.weddingDate) return;
+                const monthKey = e.weddingDate.substring(0, 7); // e.g. "2026-06"
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = { revenue: 0, advance: 0, pending: 0, count: 0 };
+                }
+                const cost = e.overallCost || 0;
+                const adv = e.advancePaid || 0;
+                monthlyData[monthKey].revenue += cost;
+                monthlyData[monthKey].advance += adv;
+                monthlyData[monthKey].pending += (cost - adv);
+                monthlyData[monthKey].count += 1;
+            });
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+
+            // 2. Financial Bar Chart (Total Revenue vs Advance Paid vs Pending Balance)
+            if (chartInstances.revenue) chartInstances.revenue.destroy();
+            const ctxRev = document.getElementById('revenueChart').getContext('2d');
+            chartInstances.revenue = new Chart(ctxRev, {
+                type: 'bar',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [
+                        {
+                            label: 'Total Revenue (Rs)',
+                            data: sortedMonths.map(m => monthlyData[m].revenue),
+                            backgroundColor: '#10b981'
+                        },
+                        {
+                            label: 'Advance Paid (Rs)',
+                            data: sortedMonths.map(m => monthlyData[m].advance),
+                            backgroundColor: '#3b82f6'
+                        },
+                        {
+                            label: 'Pending Balance (Rs)',
+                            data: sortedMonths.map(m => monthlyData[m].pending),
+                            backgroundColor: '#ef4444'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+
+            // 3. Events Booked Per Month Bar/Line Chart
+            if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
+            const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
+            chartInstances.monthlyEvents = new Chart(ctxEv, {
+                type: 'bar',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Events Count',
+                        data: sortedMonths.map(m => monthlyData[m].count),
+                        backgroundColor: '#9f1239',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor } }
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+        }
+
+        // Initialize App
         loadSavedTheme();
         saveAndRender();
     </script>
