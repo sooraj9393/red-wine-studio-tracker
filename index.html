@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Wine Studio - Event Tracker</title>
+    <style>
+        :root[data-theme="light"] {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #8b0000;
+            --primary-hover: #a00000;
+            --accent: #d97706;
+            --input-bg: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --badge-bg: #e0e7ff;
+            --badge-text: #3730a3;
+            --modal-overlay: rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #9f1239;
+            --primary-hover: #be123c;
+            --accent: #f59e0b;
+            --input-bg: #0f172a;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            --badge-bg: #312e81;
+            --badge-text: #c7d2fe;
+            --modal-overlay: rgba(0, 0, 0, 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .brand h1 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card h4 {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .stat-card p {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 5px;
+            color: var(--accent);
+        }
+
+        .form-section, .table-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+            color: var(--text-color);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        input, select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: var(--input-bg);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        tbody tr {
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background-color: var(--input-bg);
+        }
+
+        .status-tag {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: var(--badge-bg);
+            color: var(--badge-text);
+        }
+
+        .actions-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Modal Popup Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--modal-overlay);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 650px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: var(--primary);
+            font-size: 1.4rem;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .detail-item span.label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .detail-item span.value {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>🍷 RED WINE STUDIO</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Event Tracker & SLA Management</p>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+        </button>
+    </header>
+
+    <!-- Metrics Dashboard -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h4>Total Events</h4>
+            <p id="stat-total">0</p>
+        </div>
+        <div class="stat-card">
+            <h4>Total Revenue</h4>
+            <p id="stat-revenue">Rs. 0</p>
+        </div>
+        <div class="stat-card">
+            <h4>Advance Paid</h4>
+            <p id="stat-advance">Rs. 0</p>
+        </div>
+        <div class="stat-card">
+            <h4>Pending Balance</h4>
+            <p id="stat-balance">Rs. 0</p>
+        </div>
+    </div>
+
+    <!-- Event Form -->
+    <div class="form-section">
+        <h2>➕ Create New Event</h2>
+        <form id="eventForm" onsubmit="addEvent(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Event Name *</label>
+                    <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
+                </div>
+                <div class="form-group">
+                    <label>Wedding Date *</label>
+                    <input type="date" id="weddingDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Channel</label>
+                    <select id="channel">
+                        <option>Direct studio</option>
+                        <option>Phone call</option>
+                        <option>Instagram</option>
+                        <option>Referral</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Owner</label>
+                    <input type="text" id="owner" placeholder="Neeraj D Raj">
+                </div>
+                <div class="form-group">
+                    <label>Package</label>
+                    <select id="package">
+                        <option>Single Side Basic</option>
+                        <option>Both Side Premium</option>
+                        <option>Candid Photography</option>
+                        <option>Full Wedding Coverage</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Add-on Package</label>
+                    <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
+                </div>
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" id="clientName" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Client Phone</label>
+                    <input type="tel" id="clientPhone" placeholder="+91...">
+                </div>
+                <div class="form-group">
+                    <label>Overall Cost (Rs.)</label>
+                    <input type="number" id="overallCost" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Advance Paid (Rs.)</label>
+                    <input type="number" id="advancePaid" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Camera Team</label>
+                    <input type="text" id="cameraTeam" placeholder="Camera Team details">
+                </div>
+                <div class="form-group">
+                    <label>Pre-Wed Shoot Date</label>
+                    <input type="date" id="preWedDate">
+                </div>
+                <div class="form-group">
+                    <label>Album Due Date</label>
+                    <input type="date" id="albumDueDate">
+                </div>
+                <div class="form-group">
+                    <label>Video Due Date</label>
+                    <input type="date" id="videoDueDate">
+                </div>
+                <div class="form-group">
+                    <label>Status Progress</label>
+                    <select id="statusProgress">
+                        <option>PRE-WED DONE</option>
+                        <option>WEDDING DONE</option>
+                        <option>CUSTOMER SELECTION</option>
+                        <option>EDITING DONE</option>
+                        <option>OUT FOR DELIVERY</option>
+                        <option>DELIVERED</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>SLA Days Allowed</label>
+                    <input type="number" id="slaAllowed" value="30">
+                </div>
+            </div>
+            <button type="submit" class="btn">Save Event Tracker</button>
+        </form>
+    </div>
+
+    <!-- Tracker Table -->
+    <div class="table-section">
+        <div class="table-controls">
+            <h2>📋 Studio Events Tracker (Click row for details)</h2>
+            <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event Name</th>
+                        <th>Wedding Date</th>
+                        <th>Client</th>
+                        <th>Channel</th>
+                        <th>Owner</th>
+                        <th>Package</th>
+                        <th>Overall Cost</th>
+                        <th>Advance</th>
+                        <th>Status</th>
+                        <th>SLA (Days)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="trackerTableBody">
+                    <!-- Dynamic Content -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Details Modal Window -->
+    <div class="modal-overlay" id="eventModal" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalEventName">Event Details</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="details-grid" id="modalDetailsBody">
+                <!-- Dynamic Content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const INITIAL_EVENTS = [
+            {
+                id: 1,
+                eventName: "Arshas Marriage",
+                weddingDate: "2026-06-10",
+                channel: "Direct studio",
+                owner: "Neeraj D Raj",
+                package: "Single Side Basic",
+                addonPackage: "Haldi",
+                clientName: "John Doe",
+                clientPhone: "+91 9876543210",
+                overallCost: 25000,
+                advancePaid: 1000,
+                cameraTeam: "Team Alpha",
+                preWedDate: "2026-07-20",
+                albumDueDate: "2026-10-06",
+                videoDueDate: "2026-09-20",
+                statusProgress: "WEDDING DONE",
+                slaAllowed: 30
+            },
+            {
+                id: 2,
+                eventName: "Chikus Wedding",
+                weddingDate: "2026-05-01",
+                channel: "Phone call",
+                owner: "Sulthan",
+                package: "Both side premium",
+                addonPackage: "Haldi",
+                clientName: "Jane Smith",
+                clientPhone: "+91 9123456789",
+                overallCost: 40000,
+                advancePaid: 2000,
+                cameraTeam: "Team Beta",
+                preWedDate: "2026-08-01",
+                albumDueDate: "2026-10-01",
+                videoDueDate: "2026-11-05",
+                statusProgress: "CUSTOMER SELECTION",
+                slaAllowed: 60
+            }
+        ];
+
+        let events = JSON.parse(localStorage.getItem('studio_events')) || INITIAL_EVENTS;
+
+        function saveAndRender() {
+            localStorage.setItem('studio_events', JSON.stringify(events));
+            renderEvents();
+            updateStats();
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            
+            document.getElementById('theme-icon').textContent = newTheme === 'light' ? '☀️' : '🌙';
+            document.getElementById('theme-text').textContent = newTheme === 'light' ? 'Light Mode' : 'Dark Mode';
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('theme-icon').textContent = savedTheme === 'light' ? '☀️' : '🌙';
+            document.getElementById('theme-text').textContent = savedTheme === 'light' ? 'Light Mode' : 'Dark Mode';
+        }
+
+        function addEvent(e) {
+            e.preventDefault();
+            const newEvent = {
+                id: Date.now(),
+                eventName: document.getElementById('eventName').value,
+                weddingDate: document.getElementById('weddingDate').value,
+                channel: document.getElementById('channel').value,
+                owner: document.getElementById('owner').value,
+                package: document.getElementById('package').value,
+                addonPackage: document.getElementById('addonPackage').value,
+                clientName: document.getElementById('clientName').value,
+                clientPhone: document.getElementById('clientPhone').value,
+                overallCost: parseFloat(document.getElementById('overallCost').value) || 0,
+                advancePaid: parseFloat(document.getElementById('advancePaid').value) || 0,
+                cameraTeam: document.getElementById('cameraTeam').value || 'N/A',
+                preWedDate: document.getElementById('preWedDate').value || 'N/A',
+                albumDueDate: document.getElementById('albumDueDate').value || 'N/A',
+                videoDueDate: document.getElementById('videoDueDate').value || 'N/A',
+                statusProgress: document.getElementById('statusProgress').value,
+                slaAllowed: parseInt(document.getElementById('slaAllowed').value) || 30
+            };
+
+            events.unshift(newEvent);
+            saveAndRender();
+            document.getElementById('eventForm').reset();
+        }
+
+        function deleteEvent(id, e) {
+            e.stopPropagation(); // Prevents opening the modal when clicking Delete
+            if (confirm('Are you sure you want to delete this event?')) {
+                events = events.filter(ev => ev.id !== id);
+                saveAndRender();
+            }
+        }
+
+        function openModal(id) {
+            const event = events.find(e => e.id === id);
+            if (!event) return;
+
+            document.getElementById('modalEventName').innerText = event.eventName;
+            
+            const modalBody = document.getElementById('modalDetailsBody');
+            modalBody.innerHTML = `
+                <div class="detail-item"><span class="label">Client Name</span><span class="value">${event.clientName || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Client Phone</span><span class="value">${event.clientPhone || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Wedding Date</span><span class="value">${event.weddingDate || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Booking Channel</span><span class="value">${event.channel}</span></div>
+                <div class="detail-item"><span class="label">Owner / Lead</span><span class="value">${event.owner || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Status Progress</span><span class="value">${event.statusProgress}</span></div>
+                <div class="detail-item"><span class="label">Main Package</span><span class="value">${event.package}</span></div>
+                <div class="detail-item"><span class="label">Add-on Package</span><span class="value">${event.addonPackage || 'None'}</span></div>
+                <div class="detail-item"><span class="label">Overall Cost</span><span class="value">Rs. ${(event.overallCost || 0).toLocaleString()}</span></div>
+                <div class="detail-item"><span class="label">Advance Paid</span><span class="value">Rs. ${(event.advancePaid || 0).toLocaleString()}</span></div>
+                <div class="detail-item"><span class="label">Pending Balance</span><span class="value">Rs. ${((event.overallCost || 0) - (event.advancePaid || 0)).toLocaleString()}</span></div>
+                <div class="detail-item"><span class="label">SLA Allowed</span><span class="value">${event.slaAllowed} Days</span></div>
+                <div class="detail-item"><span class="label">Camera Team</span><span class="value">${event.cameraTeam || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Pre-Wed Shoot Date</span><span class="value">${event.preWedDate || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Album Due Date</span><span class="value">${event.albumDueDate || 'N/A'}</span></div>
+                <div class="detail-item"><span class="label">Video Due Date</span><span class="value">${event.videoDueDate || 'N/A'}</span></div>
+            `;
+
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        function closeModalOnOverlay(e) {
+            if (e.target.id === 'eventModal') {
+                closeModal();
+            }
+        }
+
+        function updateStats() {
+            const totalEvents = events.length;
+            const totalRev = events.reduce((sum, e) => sum + (e.overallCost || 0), 0);
+            const totalAdv = events.reduce((sum, e) => sum + (e.advancePaid || 0), 0);
+            const pendingBal = totalRev - totalAdv;
+
+            document.getElementById('stat-total').innerText = totalEvents;
+            document.getElementById('stat-revenue').innerText = `Rs. ${totalRev.toLocaleString()}`;
+            document.getElementById('stat-advance').innerText = `Rs. ${totalAdv.toLocaleString()}`;
+            document.getElementById('stat-balance').innerText = `Rs. ${pendingBal.toLocaleString()}`;
+        }
+
+        function renderEvents() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const tbody = document.getElementById('trackerTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = events.filter(e => 
+                e.eventName.toLowerCase().includes(query) || 
+                (e.clientName && e.clientName.toLowerCase().includes(query))
+            );
+
+            filtered.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => openModal(e.id);
+                tr.innerHTML = `
+                    <td><strong>${e.eventName}</strong></td>
+                    <td>${e.weddingDate || '-'}</td>
+                    <td>${e.clientName || '-'}</td>
+                    <td>${e.channel}</td>
+                    <td>${e.owner || '-'}</td>
+                    <td>${e.package}</td>
+                    <td>Rs. ${(e.overallCost || 0).toLocaleString()}</td>
+                    <td>Rs. ${(e.advancePaid || 0).toLocaleString()}</td>
+                    <td><span class="status-tag">${e.statusProgress}</span></td>
+                    <td>${e.slaAllowed} Days</td>
+                    <td><button class="actions-btn" onclick="deleteEvent(${e.id}, event)">Delete</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initialize
+        loadSavedTheme();
+        saveAndRender();
+    </script>
+</body>
+</html>
