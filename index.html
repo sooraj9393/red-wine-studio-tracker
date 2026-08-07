@@ -21,7 +21,7 @@
             --badge-bg: #e0e7ff;
             --badge-text: #3730a3;
             --modal-overlay: rgba(0, 0, 0, 0.5);
-            --chart-grid: #e2e8f0;
+            --chart-grid: rgba(226, 232, 240, 0.6);
             --logo-bg: #000000;
         }
 
@@ -39,7 +39,7 @@
             --badge-bg: #312e81;
             --badge-text: #c7d2fe;
             --modal-overlay: rgba(0, 0, 0, 0.75);
-            --chart-grid: #334155;
+            --chart-grid: rgba(51, 65, 85, 0.6);
             --logo-bg: #000000;
         }
 
@@ -75,7 +75,7 @@
         }
 
         .brand-logo {
-            height: 65px;
+            height: 60px;
             background-color: var(--logo-bg);
             padding: 6px 14px;
             border-radius: 8px;
@@ -108,12 +108,12 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .stat-card {
             background: var(--card-bg);
-            padding: 18px;
+            padding: 16px;
             border-radius: 10px;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow);
@@ -121,12 +121,12 @@
 
         .stat-card h4 {
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
         }
 
         .stat-card p {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
             margin-top: 5px;
             color: var(--accent);
@@ -138,13 +138,47 @@
             border-radius: 12px;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow);
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         h2 {
             margin-bottom: 15px;
             font-size: 1.25rem;
             color: var(--text-color);
+        }
+
+        /* --- COMPACT DASHBOARD CHARTS --- */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .chart-box {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 10px;
+            position: relative;
+            height: 210px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-box h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 155px;
         }
 
         .form-grid {
@@ -243,6 +277,16 @@
             color: var(--badge-text);
         }
 
+        .status-tag.canceled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+        }
+
         .actions-btn {
             background: #ef4444;
             color: white;
@@ -251,6 +295,24 @@
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .cancel-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .reason-text {
+            color: #ef4444;
+            font-weight: 600;
+            font-style: italic;
         }
 
         .tab-buttons {
@@ -274,39 +336,6 @@
             background: var(--primary);
             color: white;
             border-color: var(--primary);
-        }
-
-        /* --- COMPACT CHART STYLING --- */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .chart-box {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            border-radius: 10px;
-            position: relative;
-            height: 200px; /* Reduced fixed height */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .chart-box h3 {
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-            color: var(--text-color);
-            text-align: center;
-        }
-
-        .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: 150px; /* Compact chart view height */
         }
 
         .calendar-header {
@@ -357,6 +386,11 @@
             overflow: hidden;
             text-overflow: ellipsis;
             cursor: pointer;
+        }
+
+        .event-badge.canceled {
+            background: #991b1b;
+            text-decoration: line-through;
         }
 
         .modal-overlay {
@@ -417,90 +451,6 @@
         </button>
     </header>
 
-    <!-- Metrics Dashboard Cards -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h4>Total Events</h4>
-            <p id="stat-total">0</p>
-        </div>
-        <div class="stat-card">
-            <h4>Total Revenue</h4>
-            <p id="stat-revenue">Rs. 0</p>
-        </div>
-        <div class="stat-card">
-            <h4>Advance Paid</h4>
-            <p id="stat-advance">Rs. 0</p>
-        </div>
-        <div class="stat-card">
-            <h4>Pending Balance</h4>
-            <p id="stat-balance">Rs. 0</p>
-        </div>
-    </div>
-
-    <!-- Create Event Section -->
-    <div class="section-card">
-        <h2>➕ Create New Event</h2>
-        <form id="eventForm" onsubmit="addEvent(event)">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Event Name *</label>
-                    <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
-                </div>
-                <div class="form-group">
-                    <label>Wedding Date *</label>
-                    <input type="date" id="weddingDate" required>
-                </div>
-                <div class="form-group">
-                    <label>Channel</label>
-                    <select id="channel">
-                        <option>Direct studio</option>
-                        <option>Phone call</option>
-                        <option>Instagram</option>
-                        <option>Referral</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Owner</label>
-                    <input type="text" id="owner" placeholder="Neeraj D Raj">
-                </div>
-                <div class="form-group">
-                    <label>Package</label>
-                    <select id="package">
-                        <option>Single Side Basic</option>
-                        <option>Both side premium</option>
-                        <option>Candid Photography</option>
-                        <option>Full Wedding Coverage</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Add-on Package</label>
-                    <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
-                </div>
-                <div class="form-group">
-                    <label>Client Name</label>
-                    <input type="text" id="clientName" placeholder="John Doe">
-                </div>
-                <div class="form-group">
-                    <label>Client Phone</label>
-                    <input type="tel" id="clientPhone" placeholder="+91...">
-                </div>
-                <div class="form-group">
-                    <label>Overall Cost (Rs.)</label>
-                    <input type="number" id="overallCost" placeholder="0">
-                </div>
-                <div class="form-group">
-                    <label>Advance Paid (Rs.)</label>
-                    <input type="number" id="advancePaid" placeholder="0">
-                </div>
-                <div class="form-group">
-                    <label>Pre-Wed Shoot Date (Optional)</label>
-                    <input type="date" id="preWedDate">
-                </div>
-            </div>
-            <button type="submit" class="btn">Save Event Tracker</button>
-        </form>
-    </div>
-
     <!-- Navigation Tabs -->
     <div class="tab-buttons">
         <button class="tab-btn active" onclick="switchTab('trackerTab')">📋 Studio Dashboard & Events</button>
@@ -508,57 +458,149 @@
         <button class="tab-btn" onclick="switchTab('calendarTab')">📅 Event Calendar View</button>
     </div>
 
-    <!-- Tab 1: Combined Analytics Dashboard + Tracker Table -->
-    <div id="trackerTab" class="section-card tab-content">
-        <h2>📊 Studio Analytics Dashboard</h2>
-        <div class="charts-grid">
-            <div class="chart-box">
-                <h3>📌 Event Status Breakdown</h3>
-                <div class="chart-wrapper">
-                    <canvas id="statusChart"></canvas>
+    <!-- Tab 1: Studio Dashboard + Events -->
+    <div id="trackerTab" class="tab-content">
+
+        <!-- 1. STUDIO ANALYTICS DASHBOARD (ABOVE CREATE EVENT) -->
+        <div class="section-card">
+            <h2>📊 Studio Analytics Dashboard</h2>
+            
+            <!-- Key Metric Stat Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Total Events</h4>
+                    <p id="stat-total">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Revenue</h4>
+                    <p id="stat-revenue">Rs. 0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Advance Paid</h4>
+                    <p id="stat-advance">Rs. 0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Pending Balance</h4>
+                    <p id="stat-balance">Rs. 0</p>
                 </div>
             </div>
-            <div class="chart-box">
-                <h3>💰 Monthly Financials (Area View)</h3>
-                <div class="chart-wrapper">
-                    <canvas id="revenueChart"></canvas>
+
+            <!-- Modern Area Graphs -->
+            <div class="charts-grid">
+                <div class="chart-box">
+                    <h3>📌 Status Breakdown</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="statusChart"></canvas>
+                    </div>
                 </div>
-            </div>
-            <div class="chart-box">
-                <h3>📅 Booked Trend (Line View)</h3>
-                <div class="chart-wrapper">
-                    <canvas id="monthlyEventsChart"></canvas>
+                <div class="chart-box">
+                    <h3>💰 Financial Trend (Area View)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <h3>📅 Booked Trend (Stylish Area)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="monthlyEventsChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
-
-        <!-- Event List Table -->
-        <div class="table-controls">
-            <h2>📋 Studio Events List</h2>
-            <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+        <!-- 2. CREATE NEW EVENT FORM -->
+        <div class="section-card">
+            <h2>➕ Create New Event</h2>
+            <form id="eventForm" onsubmit="addEvent(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Event Name *</label>
+                        <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
+                    </div>
+                    <div class="form-group">
+                        <label>Wedding Date *</label>
+                        <input type="date" id="weddingDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Channel</label>
+                        <select id="channel">
+                            <option>Direct studio</option>
+                            <option>Phone call</option>
+                            <option>Instagram</option>
+                            <option>Referral</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Owner</label>
+                        <input type="text" id="owner" placeholder="Neeraj D Raj">
+                    </div>
+                    <div class="form-group">
+                        <label>Package</label>
+                        <select id="package">
+                            <option>Single Side Basic</option>
+                            <option>Both side premium</option>
+                            <option>Candid Photography</option>
+                            <option>Full Wedding Coverage</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Add-on Package</label>
+                        <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Name</label>
+                        <input type="text" id="clientName" placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Phone</label>
+                        <input type="tel" id="clientPhone" placeholder="+91...">
+                    </div>
+                    <div class="form-group">
+                        <label>Overall Cost (Rs.)</label>
+                        <input type="number" id="overallCost" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Advance Paid (Rs.)</label>
+                        <input type="number" id="advancePaid" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Pre-Wed Shoot Date (Optional)</label>
+                        <input type="date" id="preWedDate">
+                    </div>
+                </div>
+                <button type="submit" class="btn">Save Event Tracker</button>
+            </form>
         </div>
 
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Event Name</th>
-                        <th>Wedding Date</th>
-                        <th>Client</th>
-                        <th>Channel</th>
-                        <th>Owner</th>
-                        <th>Package</th>
-                        <th>Overall Cost</th>
-                        <th>Advance</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="trackerTableBody"></tbody>
-            </table>
+        <!-- 3. STUDIO EVENTS LIST TABLE -->
+        <div class="section-card">
+            <div class="table-controls">
+                <h2>📋 Studio Events List</h2>
+                <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event Name</th>
+                            <th>Wedding Date</th>
+                            <th>Client</th>
+                            <th>Channel</th>
+                            <th>Owner</th>
+                            <th>Package</th>
+                            <th>Overall Cost</th>
+                            <th>Advance</th>
+                            <th>Status</th>
+                            <th>Cancellation Reason</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackerTableBody"></tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 
     <!-- Tab 2: What's Pending Today -->
@@ -617,7 +659,7 @@
                     </div>
                     <div class="form-group">
                         <label>Status Progress</label>
-                        <select id="mStatus">
+                        <select id="mStatus" onchange="toggleCancelReasonField()">
                             <option>BOOKED</option>
                             <option>PRE-WED DONE</option>
                             <option>WEDDING DONE</option>
@@ -625,7 +667,12 @@
                             <option>EDITING DONE</option>
                             <option>OUT FOR DELIVERY</option>
                             <option>DELIVERED</option>
+                            <option>CANCELED</option>
                         </select>
+                    </div>
+                    <div class="form-group" id="cancelReasonGroup" style="display: none;">
+                        <label>Cancellation Reason *</label>
+                        <input type="text" id="mCancelReason" placeholder="e.g., Client requested date change / Financial issue">
                     </div>
                     <div class="form-group">
                         <label>Camera Team</label>
@@ -676,6 +723,7 @@
                 albumDueDate: "2026-07-10",
                 videoDueDate: "2026-07-10",
                 statusProgress: "BOOKED",
+                cancelReason: "",
                 slaAllowed: 30
             },
             {
@@ -695,6 +743,7 @@
                 albumDueDate: "2026-05-31",
                 videoDueDate: "2026-05-31",
                 statusProgress: "EDITING DONE",
+                cancelReason: "",
                 slaAllowed: 30
             },
             {
@@ -714,6 +763,7 @@
                 albumDueDate: "2026-09-14",
                 videoDueDate: "2026-09-14",
                 statusProgress: "BOOKED",
+                cancelReason: "",
                 slaAllowed: 30
             }
         ];
@@ -778,6 +828,7 @@
                 albumDueDate: autoDueDate,
                 videoDueDate: autoDueDate,
                 statusProgress: 'BOOKED',
+                cancelReason: '',
                 slaAllowed: 30
             };
 
@@ -786,11 +837,34 @@
             document.getElementById('eventForm').reset();
         }
 
+        function cancelEventPrompt(id, e) {
+            e.stopPropagation();
+            const ev = events.find(item => item.id === id);
+            if (!ev) return;
+
+            const reason = prompt(`Cancel event "${ev.eventName}"? Please enter the cancellation reason:`);
+            if (reason !== null) {
+                ev.statusProgress = 'CANCELED';
+                ev.cancelReason = reason.trim() || 'No reason provided';
+                saveAndRender();
+            }
+        }
+
         function deleteEvent(id, e) {
             e.stopPropagation();
-            if (confirm('Are you sure you want to delete this event?')) {
+            if (confirm('Are you sure you want to permanently delete this event record?')) {
                 events = events.filter(ev => ev.id !== id);
                 saveAndRender();
+            }
+        }
+
+        function toggleCancelReasonField() {
+            const statusVal = document.getElementById('mStatus').value;
+            const reasonGroup = document.getElementById('cancelReasonGroup');
+            if (statusVal === 'CANCELED') {
+                reasonGroup.style.display = 'flex';
+            } else {
+                reasonGroup.style.display = 'none';
             }
         }
 
@@ -801,6 +875,7 @@
             document.getElementById('modalEventId').value = ev.id;
             document.getElementById('mEventName').value = ev.eventName;
             document.getElementById('mStatus').value = ev.statusProgress || 'BOOKED';
+            document.getElementById('mCancelReason').value = ev.cancelReason || '';
             document.getElementById('mCameraTeam').value = ev.cameraTeam || '';
             document.getElementById('mPreWedDate').value = ev.preWedDate || '';
             document.getElementById('mAlbumDueDate').value = ev.albumDueDate || '';
@@ -808,6 +883,7 @@
             document.getElementById('mOverallCost').value = ev.overallCost || 0;
             document.getElementById('mAdvancePaid').value = ev.advancePaid || 0;
 
+            toggleCancelReasonField();
             document.getElementById('eventModal').style.display = 'flex';
         }
 
@@ -826,6 +902,7 @@
             if (ev) {
                 ev.eventName = document.getElementById('mEventName').value;
                 ev.statusProgress = document.getElementById('mStatus').value;
+                ev.cancelReason = ev.statusProgress === 'CANCELED' ? document.getElementById('mCancelReason').value : '';
                 ev.cameraTeam = document.getElementById('mCameraTeam').value;
                 ev.preWedDate = document.getElementById('mPreWedDate').value;
                 ev.albumDueDate = document.getElementById('mAlbumDueDate').value;
@@ -845,8 +922,9 @@
         }
 
         function updateStats() {
-            const totalRev = events.reduce((sum, e) => sum + (e.overallCost || 0), 0);
-            const totalAdv = events.reduce((sum, e) => sum + (e.advancePaid || 0), 0);
+            const activeEvents = events.filter(e => e.statusProgress !== 'CANCELED');
+            const totalRev = activeEvents.reduce((sum, e) => sum + (e.overallCost || 0), 0);
+            const totalAdv = activeEvents.reduce((sum, e) => sum + (e.advancePaid || 0), 0);
             document.getElementById('stat-total').innerText = events.length;
             document.getElementById('stat-revenue').innerText = `Rs. ${totalRev.toLocaleString()}`;
             document.getElementById('stat-advance').innerText = `Rs. ${totalAdv.toLocaleString()}`;
@@ -860,12 +938,15 @@
 
             const filtered = events.filter(e => 
                 e.eventName.toLowerCase().includes(query) || 
-                (e.clientName && e.clientName.toLowerCase().includes(query))
+                (e.clientName && e.clientName.toLowerCase().includes(query)) ||
+                (e.cancelReason && e.cancelReason.toLowerCase().includes(query))
             );
 
             filtered.forEach(e => {
                 const tr = document.createElement('tr');
                 tr.onclick = () => openModal(e.id);
+                const isCanceled = e.statusProgress === 'CANCELED';
+
                 tr.innerHTML = `
                     <td><strong>${e.eventName}</strong></td>
                     <td>${e.weddingDate || '-'}</td>
@@ -875,8 +956,14 @@
                     <td>${e.package}</td>
                     <td>Rs. ${(e.overallCost || 0).toLocaleString()}</td>
                     <td>Rs. ${(e.advancePaid || 0).toLocaleString()}</td>
-                    <td><span class="status-tag">${e.statusProgress || 'BOOKED'}</span></td>
-                    <td><button class="actions-btn" onclick="deleteEvent(${e.id}, event)">Delete</button></td>
+                    <td><span class="status-tag ${isCanceled ? 'canceled' : ''}">${e.statusProgress || 'BOOKED'}</span></td>
+                    <td><span class="${e.cancelReason ? 'reason-text' : ''}">${e.cancelReason || '-'}</span></td>
+                    <td>
+                        <div class="actions-cell">
+                            ${!isCanceled ? `<button class="cancel-btn" onclick="cancelEventPrompt(${e.id}, event)">Cancel</button>` : ''}
+                            <button class="actions-btn" onclick="deleteEvent(${e.id}, event)">Delete</button>
+                        </div>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -886,7 +973,7 @@
             const tbody = document.getElementById('pendingTableBody');
             tbody.innerHTML = '';
 
-            const pendingEvents = events.filter(e => e.statusProgress !== 'DELIVERED');
+            const pendingEvents = events.filter(e => e.statusProgress !== 'DELIVERED' && e.statusProgress !== 'CANCELED');
 
             pendingEvents.forEach(e => {
                 const tr = document.createElement('tr');
@@ -936,8 +1023,9 @@
                 const dayEvents = events.filter(e => e.weddingDate === dateStr);
                 dayEvents.forEach(ev => {
                     const badge = document.createElement('div');
-                    badge.className = 'event-badge';
-                    badge.innerText = ev.eventName;
+                    const isCanceled = ev.statusProgress === 'CANCELED';
+                    badge.className = `event-badge ${isCanceled ? 'canceled' : ''}`;
+                    badge.innerText = isCanceled ? `[Canceled] ${ev.eventName}` : ev.eventName;
                     badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
                     cell.appendChild(badge);
                 });
@@ -946,11 +1034,11 @@
             }
         }
 
-        /* --- UPDATED COMPACT CHART RENDER LOGIC --- */
+        /* --- STYLISH GRADIENT AREA CHARTS --- */
         function renderCharts() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const textColor = isDark ? '#f8fafc' : '#1e293b';
-            const gridColor = isDark ? '#334155' : '#e2e8f0';
+            const gridColor = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
 
             // 1. Status Breakdown (Doughnut)
             const statusCounts = {};
@@ -967,8 +1055,9 @@
                     labels: Object.keys(statusCounts),
                     datasets: [{
                         data: Object.values(statusCounts),
-                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'],
-                        borderWidth: 1
+                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b', '#ef4444'],
+                        borderWidth: 2,
+                        borderColor: isDark ? '#1e293b' : '#ffffff'
                     }]
                 },
                 options: {
@@ -983,7 +1072,7 @@
                 }
             });
 
-            // Prepare Monthly Data
+            // Monthly Aggregations (Active Events Only)
             const monthlyData = {};
             events.forEach(e => {
                 if (!e.weddingDate) return;
@@ -991,19 +1080,30 @@
                 if (!monthlyData[monthKey]) {
                     monthlyData[monthKey] = { revenue: 0, advance: 0, pending: 0, count: 0 };
                 }
-                const cost = e.overallCost || 0;
-                const adv = e.advancePaid || 0;
-                monthlyData[monthKey].revenue += cost;
-                monthlyData[monthKey].advance += adv;
-                monthlyData[monthKey].pending += (cost - adv);
+                if (e.statusProgress !== 'CANCELED') {
+                    const cost = e.overallCost || 0;
+                    const adv = e.advancePaid || 0;
+                    monthlyData[monthKey].revenue += cost;
+                    monthlyData[monthKey].advance += adv;
+                    monthlyData[monthKey].pending += (cost - adv);
+                }
                 monthlyData[monthKey].count += 1;
             });
 
             const sortedMonths = Object.keys(monthlyData).sort();
 
-            // 2. Financials Area Graph (Smooth Line with Fill)
+            // 2. Financial Trend (Area Chart)
             if (chartInstances.revenue) chartInstances.revenue.destroy();
             const ctxRev = document.getElementById('revenueChart').getContext('2d');
+            
+            const gradRev = ctxRev.createLinearGradient(0, 0, 0, 140);
+            gradRev.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
+            gradRev.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+
+            const gradPend = ctxRev.createLinearGradient(0, 0, 0, 140);
+            gradPend.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+            gradPend.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+
             chartInstances.revenue = new Chart(ctxRev, {
                 type: 'line',
                 data: {
@@ -1013,19 +1113,23 @@
                             label: 'Revenue',
                             data: sortedMonths.map(m => monthlyData[m].revenue),
                             borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                            backgroundColor: gradRev,
                             fill: true,
-                            tension: 0.35,
-                            pointRadius: 3
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#10b981'
                         },
                         {
                             label: 'Pending',
                             data: sortedMonths.map(m => monthlyData[m].pending),
                             borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                            backgroundColor: gradPend,
                             fill: true,
-                            tension: 0.35,
-                            pointRadius: 3
+                            tension: 0.4,
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#ef4444'
                         }
                     ]
                 },
@@ -1034,7 +1138,7 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
+                        y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor }, beginAtZero: true }
                     },
                     plugins: {
                         legend: {
@@ -1045,9 +1149,14 @@
                 }
             });
 
-            // 3. Events Booked Line Graph
+            // 3. Booked Trend (Stylish Area Graph)
             if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
             const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
+            
+            const gradEvents = ctxEv.createLinearGradient(0, 0, 0, 140);
+            gradEvents.addColorStop(0, 'rgba(245, 158, 11, 0.5)');
+            gradEvents.addColorStop(1, 'rgba(245, 158, 11, 0.02)');
+
             chartInstances.monthlyEvents = new Chart(ctxEv, {
                 type: 'line',
                 data: {
@@ -1056,11 +1165,15 @@
                         label: 'Events Count',
                         data: sortedMonths.map(m => monthlyData[m].count),
                         borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        backgroundColor: gradEvents,
                         fill: true,
-                        tension: 0.3,
+                        tension: 0.4,
+                        borderWidth: 2.5,
                         pointRadius: 4,
-                        pointBackgroundColor: '#f59e0b'
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#f59e0b',
+                        pointBorderColor: isDark ? '#1e293b' : '#ffffff',
+                        pointBorderWidth: 2
                     }]
                 },
                 options: {
@@ -1068,7 +1181,12 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor, stepSize: 1, font: { size: 10 } }, grid: { color: gridColor } }
+                        y: { 
+                            ticks: { color: textColor, precision: 0, font: { size: 10 } }, 
+                            grid: { color: gridColor },
+                            suggestedMin: 0,
+                            suggestedMax: Math.max(...sortedMonths.map(m => monthlyData[m].count), 1) + 1
+                        }
                     },
                     plugins: {
                         legend: {
