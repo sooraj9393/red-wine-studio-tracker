@@ -1,1306 +1,247 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Red Wine Studio - Event Tracker</title>
-    <!-- Chart.js CDN for Interactive Graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root[data-theme="light"] {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #1e293b;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --primary: #8b0000;
-            --primary-hover: #a00000;
-            --accent: #d97706;
-            --input-bg: #ffffff;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --badge-bg: #e0e7ff;
-            --badge-text: #3730a3;
-            --modal-overlay: rgba(0, 0, 0, 0.5);
-            --chart-grid: rgba(226, 232, 240, 0.6);
-            --logo-bg: #000000;
-            --delivered-bg: rgba(16, 185, 129, 0.08);
-            --delivered-border: #10b981;
-        }
-
-        :root[data-theme="dark"] {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --primary: #9f1239;
-            --primary-hover: #be123c;
-            --accent: #f59e0b;
-            --input-bg: #0f172a;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            --badge-bg: #312e81;
-            --badge-text: #c7d2fe;
-            --modal-overlay: rgba(0, 0, 0, 0.75);
-            --chart-grid: rgba(51, 65, 85, 0.6);
-            --logo-bg: #000000;
-            --delivered-bg: rgba(16, 185, 129, 0.15);
-            --delivered-border: #059669;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 20px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .brand-container {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-
-        .brand-logo {
-            height: 60px;
-            background-color: var(--logo-bg);
-            padding: 6px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            object-fit: contain;
-            box-shadow: var(--shadow);
-        }
-
-        .brand h1 {
-            font-size: 1.8rem;
-            color: var(--primary);
-            letter-spacing: 1px;
-        }
-
-        .theme-toggle {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: var(--shadow);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            padding: 16px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
-        }
-
-        .stat-card h4 {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-        }
-
-        .stat-card p {
-            font-size: 1.4rem;
-            font-weight: bold;
-            margin-top: 5px;
-            color: var(--accent);
-        }
-
-        .section-card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
-            margin-bottom: 25px;
-        }
-
-        h2 {
-            margin-bottom: 15px;
-            font-size: 1.25rem;
-            color: var(--text-color);
-        }
-
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-        }
-
-        .chart-box {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            border-radius: 10px;
-            position: relative;
-            height: 210px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: var(--shadow);
-        }
-
-        .chart-box h3 {
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-            color: var(--text-color);
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: 155px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 15px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        input, select {
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
-            color: var(--text-color);
-            font-size: 0.9rem;
-            outline: none;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--primary);
-        }
-
-        .btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.95rem;
-            margin-top: 15px;
-        }
-
-        .btn:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-secondary {
-            background: #3b82f6;
-        }
-
-        .btn-secondary:hover {
-            background: #2563eb;
-        }
-
-        .table-controls {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.88rem;
-            text-align: left;
-        }
-
-        th, td {
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--border-color);
-            white-space: nowrap;
-        }
-
-        th {
-            background-color: var(--input-bg);
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        tbody tr {
-            cursor: pointer;
-        }
-
-        tbody tr:hover {
-            background-color: var(--input-bg);
-        }
-
-        tr.row-delivered {
-            background-color: var(--delivered-bg) !important;
-            border-left: 4px solid var(--delivered-border);
-        }
-
-        .status-tag {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            background: var(--badge-bg);
-            color: var(--badge-text);
-        }
-
-        .status-tag.delivered {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-tag.canceled {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .actions-cell {
-            display: flex;
-            gap: 6px;
-        }
-
-        .actions-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.75rem;
-        }
-
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .tab-btn {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 10px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .tab-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-
-        .calendar-day-head {
-            text-align: center;
-            font-weight: bold;
-            color: var(--text-muted);
-            padding: 8px;
-            font-size: 0.85rem;
-        }
-
-        .calendar-cell {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            min-height: 105px;
-            padding: 6px;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            overflow-y: auto;
-        }
-
-        .calendar-cell .day-num {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: bold;
-        }
-
-        .event-badge {
-            background: var(--primary);
-            color: white;
-            font-size: 0.68rem;
-            padding: 3px 5px;
-            border-radius: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            cursor: pointer;
-        }
-
-        .event-badge.delivered {
-            background: #10b981;
-        }
-
-        .event-badge.canceled {
-            background: #991b1b;
-            text-decoration: line-through;
-            opacity: 0.8;
-        }
-
-        /* Album Due Date Badge Styling */
-        .event-badge.album-due {
-            background: #7c3aed;
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: var(--modal-overlay);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 750px;
-            max-height: 88vh;
-            overflow-y: auto;
-            padding: 25px;
-            box-shadow: var(--shadow);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        .close-modal {
-            background: transparent;
-            border: none;
-            font-size: 1.5rem;
-            color: var(--text-muted);
-            cursor: pointer;
-        }
-
-        .payments-box {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .payments-box h4 {
-            margin-bottom: 12px;
-            color: var(--text-color);
-            font-size: 0.95rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .payment-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1.2fr 40px;
-            gap: 8px;
-            margin-bottom: 8px;
-            align-items: center;
-        }
-
-        .remove-pay-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            height: 36px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .summary-banner {
-            display: flex;
-            justify-content: space-between;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid #3b82f6;
-            padding: 10px 15px;
-            border-radius: 6px;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-    </style>
+    <title>Red Wine Studio - Event Management</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase JS SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
 
-    <header>
-        <div class="brand-container">
-            <img src="red_wine_logo.png" alt="Red Wine Studio Logo" class="brand-logo" onerror="this.style.display='none'">
-            <div class="brand">
-                <h1>RED WINE STUDIO</h1>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Event Tracker & Multi-Payment Ledger</p>
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-10 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-wine-glass-empty text-red-500 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide">Red Wine Studio</h1>
             </div>
+            <button onclick="openModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-md hover:shadow-red-900/30">
+                <i class="fa-solid fa-plus"></i> Add Event
+            </button>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
-        </button>
     </header>
 
-    <div class="tab-buttons">
-        <button class="tab-btn active" onclick="switchTab('trackerTab')">📋 Studio Dashboard & Events</button>
-        <button class="tab-btn" onclick="switchTab('pendingTab')">⏳ Pending Deliverables</button>
-        <button class="tab-btn" onclick="switchTab('calendarTab')">📅 Event Calendar View</button>
-    </div>
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 mt-8">
+        <!-- Event Stats / Realtime Indicator -->
+        <div class="flex justify-between items-center mb-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+            <div>
+                <h2 class="text-2xl font-bold">Upcoming Events</h2>
+                <p class="text-sm text-slate-400">Live synchronized event schedule</p>
+            </div>
+            <div id="status-badge" class="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-semibold border border-amber-500/20">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                Connecting to Database...
+            </div>
+        </div>
 
-    <!-- Tab 1: Studio Dashboard + Events -->
-    <div id="trackerTab" class="tab-content">
+        <!-- Event Grid -->
+        <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading State Placeholder -->
+            <div class="col-span-full text-center py-12 text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-3xl mb-3"></i>
+                <p>Loading realtime events...</p>
+            </div>
+        </div>
+    </main>
 
-        <!-- 1. STUDIO ANALYTICS DASHBOARD -->
-        <div class="section-card">
-            <h2>📊 Studio Analytics Dashboard</h2>
+    <!-- Add/Edit Event Modal -->
+    <div id="event-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 rounded-2xl max-w-md w-full p-6 border border-slate-700 shadow-2xl relative">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Add New Event</h3>
             
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h4>Total Events</h4>
-                    <p id="stat-total">0</p>
+            <form id="event-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <input type="hidden" id="event-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Event Title</label>
+                    <input type="text" id="event-title" required placeholder="e.g. Live Acoustic Night" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500">
                 </div>
-                <div class="stat-card">
-                    <h4>Total Revenue</h4>
-                    <p id="stat-revenue">Rs. 0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Total Collected</h4>
-                    <p id="stat-advance">Rs. 0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Remaining Balance</h4>
-                    <p id="stat-balance">Rs. 0</p>
-                </div>
-            </div>
 
-            <div class="charts-grid">
-                <div class="chart-box">
-                    <h3>📌 Status Breakdown</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="statusChart"></canvas>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Date</label>
+                        <input type="date" id="event-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500">
                     </div>
-                </div>
-                <div class="chart-box">
-                    <h3>💰 Financial Trend (Area Graph)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <h3>📅 Monthly Booked Events (Area Graph)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="monthlyEventsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 2. CREATE NEW EVENT FORM -->
-        <div class="section-card">
-            <h2>➕ Create New Event</h2>
-            <form id="eventForm" onsubmit="addEvent(event)">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Booking Date (Created Date) *</label>
-                        <input type="date" id="createdDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Event Name *</label>
-                        <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
-                    </div>
-                    <div class="form-group">
-                        <label>Wedding Date *</label>
-                        <input type="date" id="weddingDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Channel</label>
-                        <select id="channel">
-                            <option>Direct studio</option>
-                            <option>Phone call</option>
-                            <option>Instagram</option>
-                            <option>Referral</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Owner</label>
-                        <input type="text" id="owner" placeholder="Neeraj D Raj">
-                    </div>
-                    <div class="form-group">
-                        <label>Package</label>
-                        <select id="package">
-                            <option>Single Side Basic</option>
-                            <option>Both side premium</option>
-                            <option>Candid Photography</option>
-                            <option>Full Wedding Coverage</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Add-on Package</label>
-                        <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
-                    </div>
-                    <div class="form-group">
-                        <label>Client Name</label>
-                        <input type="text" id="clientName" placeholder="John Doe">
-                    </div>
-                    <div class="form-group">
-                        <label>Client Phone</label>
-                        <input type="tel" id="clientPhone" placeholder="+91...">
-                    </div>
-                    <div class="form-group">
-                        <label>Overall Cost (Rs.)</label>
-                        <input type="number" id="overallCost" placeholder="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Booking Advance Paid (Rs.)</label>
-                        <input type="number" id="advancePaid" placeholder="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Advance Payment Mode</label>
-                        <select id="advanceMode">
-                            <option>GPay / PhonePe</option>
-                            <option>Cash</option>
-                            <option>Bank Transfer</option>
-                            <option>Card</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Advance Reference / Txn ID</label>
-                        <input type="text" id="advanceRef" placeholder="e.g. UPI/12345678">
-                    </div>
-                    <div class="form-group">
-                        <label>Pre-Wed Shoot Date (Optional)</label>
-                        <input type="date" id="preWedDate">
-                    </div>
-                </div>
-                <button type="submit" class="btn">Save Event Tracker</button>
-            </form>
-        </div>
-
-        <!-- 3. STUDIO EVENTS LIST TABLE -->
-        <div class="section-card">
-            <div class="table-controls">
-                <h2>📋 Studio Events List</h2>
-                <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
-            </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Booking Date</th>
-                            <th>Event Name</th>
-                            <th>Wedding Date</th>
-                            <th>Client</th>
-                            <th>Package</th>
-                            <th>Overall Cost</th>
-                            <th>Total Paid</th>
-                            <th>Remaining Bal.</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trackerTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Tab 2: What's Pending Today -->
-    <div id="pendingTab" class="section-card tab-content" style="display: none;">
-        <h2>⏳ Pending Deliverables & Follow-ups</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Event Name</th>
-                        <th>Client</th>
-                        <th>Wedding Date</th>
-                        <th>Album Due Date</th>
-                        <th>Video Due Date</th>
-                        <th>Remaining Balance</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="pendingTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Tab 3: Interactive Calendar View -->
-    <div id="calendarTab" class="section-card tab-content" style="display: none;">
-        <div class="calendar-header">
-            <button class="btn" onclick="changeMonth(-1)" style="margin: 0;">◀ Prev</button>
-            <h2 id="calendarMonthTitle">Month Year</h2>
-            <button class="btn" onclick="changeMonth(1)" style="margin: 0;">Next ▶</button>
-        </div>
-
-        <div class="calendar-grid" id="calendarHead">
-            <div class="calendar-day-head">Sun</div>
-            <div class="calendar-day-head">Mon</div>
-            <div class="calendar-day-head">Tue</div>
-            <div class="calendar-day-head">Wed</div>
-            <div class="calendar-day-head">Thu</div>
-            <div class="calendar-day-head">Fri</div>
-            <div class="calendar-day-head">Sat</div>
-        </div>
-        <div class="calendar-grid" id="calendarGrid" style="margin-top: 5px;"></div>
-    </div>
-
-    <!-- Edit Event & Payment Modal -->
-    <div class="modal-overlay" id="eventModal" onclick="closeModalOnOverlay(event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Event & Payment Ledger</h3>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
-            </div>
-            <form id="editForm" onsubmit="saveModalChanges(event)">
-                <input type="hidden" id="modalEventId">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Booking Date (Created Date)</label>
-                        <input type="date" id="mCreatedDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Event Name</label>
-                        <input type="text" id="mEventName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Status Progress</label>
-                        <select id="mStatus" onchange="toggleCancelReasonField()">
-                            <option>BOOKED</option>
-                            <option>PRE-WED DONE</option>
-                            <option>WEDDING DONE</option>
-                            <option>CUSTOMER SELECTION</option>
-                            <option>EDITING DONE</option>
-                            <option>OUT FOR DELIVERY</option>
-                            <option>DELIVERED</option>
-                            <option>CANCELED</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="cancelReasonGroup" style="display: none;">
-                        <label>Cancellation Reason *</label>
-                        <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
-                    </div>
-                    <div class="form-group">
-                        <label>Camera Team</label>
-                        <input type="text" id="mCameraTeam" placeholder="Camera Team details">
-                    </div>
-                    <div class="form-group">
-                        <label>Pre-Wed Shoot Date</label>
-                        <input type="date" id="mPreWedDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Album Due Date</label>
-                        <input type="date" id="mAlbumDueDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Video Due Date</label>
-                        <input type="date" id="mVideoDueDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Overall Cost (Rs.)</label>
-                        <input type="number" id="mOverallCost" oninput="recalculateModalPayments()">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Time</label>
+                        <input type="time" id="event-time" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500">
                     </div>
                 </div>
 
-                <div class="payments-box">
-                    <h4>
-                        💳 Payment Installments Ledger
-                        <button type="button" class="btn btn-secondary" onclick="addPaymentRow()" style="padding: 4px 10px; margin: 0; font-size: 0.8rem;">+ Add Payment</button>
-                    </h4>
-                    <div id="paymentRowsContainer"></div>
-
-                    <div class="summary-banner">
-                        <div>Total Paid: <span id="mTotalPaidText" style="color: #10b981;">Rs. 0</span></div>
-                        <div>Remaining Balance: <span id="mRemainingBalText" style="color: #ef4444;">Rs. 0</span></div>
-                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Location / Stage</label>
+                    <input type="text" id="event-location" required placeholder="e.g. Studio A / Main Stage" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500">
                 </div>
 
-                <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Update Event & Payments</button>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Description</label>
+                    <textarea id="event-description" rows="3" placeholder="Additional details..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium text-slate-300">Cancel</button>
+                    <button type="submit" id="submit-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium text-white">Save Event</button>
+                </div>
             </form>
         </div>
     </div>
 
+    <!-- Application Logic Script -->
     <script>
-        const INITIAL_EVENTS = [
-            {
-                id: 1,
-                createdDate: "2026-06-01",
-                eventName: "yash",
-                weddingDate: "2026-06-10",
-                channel: "Direct studio",
-                owner: "Neeraj D Raj",
-                package: "Single Side Basic",
-                addonPackage: "Haldi",
-                clientName: "John Doe",
-                clientPhone: "+91 9876543210",
-                overallCost: 150000,
-                payments: [
-                    { amount: 50000, date: "2026-06-01", mode: "GPay / PhonePe", ref: "UPI/9812739" },
-                    { amount: 30000, date: "2026-06-09", mode: "Bank Transfer", ref: "TXN/990011" }
-                ],
-                cameraTeam: "",
-                preWedDate: "2026-06-10",
-                albumDueDate: "2026-07-13",
-                videoDueDate: "2026-07-13",
-                statusProgress: "DELIVERED",
-                cancelReason: "",
-                slaAllowed: 30
-            }
-        ];
+        // 1. Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDD6KHNyFKhZBisGh8MJNnnKG6p9TjrHOY",
+            authDomain: "red-wine-studio.firebaseapp.com",
+            projectId: "red-wine-studio",
+            storageBucket: "red-wine-studio.firebasestorage.app",
+            messagingSenderId: "225688453076",
+            appId: "1:225688453076:web:f51c533b759f944c602041",
+            measurementId: "G-4SZB4YHF1Z"
+        };
 
-        let events = JSON.parse(localStorage.getItem('studio_events')) || INITIAL_EVENTS;
-        let currentCalendarDate = new Date();
-        let chartInstances = {};
+        // 2. Initialize Firebase & Firestore
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-        events.forEach(ev => {
-            if (!ev.payments) {
-                ev.payments = [];
-                if (ev.advancePaid) {
-                    ev.payments.push({
-                        amount: ev.advancePaid,
-                        date: ev.createdDate || new Date().toISOString().split('T')[0],
-                        mode: 'GPay / PhonePe',
-                        ref: 'Initial Advance'
-                    });
-                }
+        // 3. Elements
+        const eventsGrid = document.getElementById('events-grid');
+        const statusBadge = document.getElementById('status-badge');
+        const modal = document.getElementById('event-modal');
+        const form = document.getElementById('event-form');
+
+        // 4. Listen for Realtime Updates from Firestore
+        db.collection('events').orderBy('date', 'asc').onSnapshot((snapshot) => {
+            // Update Connection Status
+            statusBadge.className = "flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-xs font-semibold border border-emerald-500/20";
+            statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Live Sync Active`;
+
+            if (snapshot.empty) {
+                eventsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-500 bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
+                        <i class="fa-regular fa-calendar-xmark text-4xl mb-3 block"></i>
+                        <p class="text-lg font-medium">No events scheduled yet.</p>
+                        <p class="text-sm text-slate-400">Click "Add Event" above to create your first event.</p>
+                    </div>`;
+                return;
             }
+
+            eventsGrid.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const event = doc.data();
+                const id = doc.id;
+                eventsGrid.appendChild(createEventCard(id, event));
+            });
+        }, (error) => {
+            console.error("Firestore sync error:", error);
+            statusBadge.className = "flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-400 rounded-full text-xs font-semibold border border-red-500/20";
+            statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400"></span> Connection Error`;
         });
 
-        document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
-
-        function addDays(dateStr, days) {
-            if (!dateStr) return '';
-            const d = new Date(dateStr);
-            d.setDate(d.getDate() + days);
-            return d.toISOString().split('T')[0];
+        // 5. Card Component Builder
+        function createEventCard(id, data) {
+            const card = document.createElement('div');
+            card.className = "bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-600 transition";
+            card.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-white leading-snug">${escapeHtml(data.title)}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="editEvent('${id}', '${escapeHtml(data.title)}', '${data.date}', '${data.time}', '${escapeHtml(data.location)}', '${escapeHtml(data.description || '')}')" class="text-slate-400 hover:text-amber-400 text-sm p-1">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteEvent('${id}')" class="text-slate-400 hover:text-red-400 text-sm p-1">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-slate-300 text-sm mb-4 line-clamp-3">${escapeHtml(data.description || 'No description provided.')}</p>
+                </div>
+                <div class="border-t border-slate-700/60 pt-3 space-y-1 text-xs text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-red-400 w-4"></i>
+                        <span>${data.date} at ${data.time}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-red-400 w-4"></i>
+                        <span>${escapeHtml(data.location)}</span>
+                    </div>
+                </div>
+            `;
+            return card;
         }
 
-        function calculateTotalPaid(eventObj) {
-            if (!eventObj.payments) return 0;
-            return eventObj.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('studio_events', JSON.stringify(events));
-            renderEvents();
-            renderPending();
-            renderCalendar();
-            updateStats();
-            renderCharts();
-        }
-
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            html.setAttribute('data-theme', newTheme);
-            document.getElementById('theme-icon').textContent = newTheme === 'light' ? '☀️' : '🌙';
-            document.getElementById('theme-text').textContent = newTheme === 'light' ? 'Light Mode' : 'Dark Mode';
-            localStorage.setItem('theme', newTheme);
-            renderCharts();
-        }
-
-        function loadSavedTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            document.getElementById('theme-icon').textContent = savedTheme === 'light' ? '☀️' : '🌙';
-            document.getElementById('theme-text').textContent = savedTheme === 'light' ? 'Light Mode' : 'Dark Mode';
-        }
-
-        function addEvent(e) {
+        // 6. Form Handlers & Database Writes
+        async function handleFormSubmit(e) {
             e.preventDefault();
-            const wDate = document.getElementById('weddingDate').value;
-            const autoDueDate = addDays(wDate, 30);
-            const initialAdv = parseFloat(document.getElementById('advancePaid').value) || 0;
-
-            const paymentsList = [];
-            if (initialAdv > 0) {
-                paymentsList.push({
-                    amount: initialAdv,
-                    date: document.getElementById('createdDate').value,
-                    mode: document.getElementById('advanceMode').value,
-                    ref: document.getElementById('advanceRef').value || 'Booking Advance'
-                });
-            }
-
-            const newEvent = {
-                id: Date.now(),
-                createdDate: document.getElementById('createdDate').value || new Date().toISOString().split('T')[0],
-                eventName: document.getElementById('eventName').value,
-                weddingDate: wDate,
-                channel: document.getElementById('channel').value,
-                owner: document.getElementById('owner').value,
-                package: document.getElementById('package').value,
-                addonPackage: document.getElementById('addonPackage').value,
-                clientName: document.getElementById('clientName').value,
-                clientPhone: document.getElementById('clientPhone').value,
-                overallCost: parseFloat(document.getElementById('overallCost').value) || 0,
-                payments: paymentsList,
-                cameraTeam: '',
-                preWedDate: document.getElementById('preWedDate').value || '',
-                albumDueDate: autoDueDate,
-                videoDueDate: autoDueDate,
-                statusProgress: 'BOOKED',
-                cancelReason: '',
-                slaAllowed: 30
+            const id = document.getElementById('event-id').value;
+            const eventData = {
+                title: document.getElementById('event-title').value,
+                date: document.getElementById('event-date').value,
+                time: document.getElementById('event-time').value,
+                location: document.getElementById('event-location').value,
+                description: document.getElementById('event-description').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            events.unshift(newEvent);
-            saveAndRender();
-            document.getElementById('eventForm').reset();
-            document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
-        }
-
-        function deleteEvent(id, e) {
-            e.stopPropagation();
-            if (confirm('Are you sure you want to delete this event permanently?')) {
-                events = events.filter(ev => ev.id !== id);
-                saveAndRender();
+            try {
+                if (id) {
+                    await db.collection('events').doc(id).update(eventData);
+                } else {
+                    eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('events').add(eventData);
+                }
+                closeModal();
+            } catch (err) {
+                alert("Error saving event: " + err.message);
             }
         }
 
-        function toggleCancelReasonField() {
-            const statusVal = document.getElementById('mStatus').value;
-            document.getElementById('cancelReasonGroup').style.display = statusVal === 'CANCELED' ? 'flex' : 'none';
+        async function deleteEvent(id) {
+            if (confirm("Are you sure you want to delete this event?")) {
+                try {
+                    await db.collection('events').doc(id).delete();
+                } catch (err) {
+                    alert("Error deleting event: " + err.message);
+                }
+            }
         }
 
-        function openModal(id) {
-            const ev = events.find(e => e.id === id);
-            if (!ev) return;
-
-            document.getElementById('modalEventId').value = ev.id;
-            document.getElementById('mCreatedDate').value = ev.createdDate || new Date().toISOString().split('T')[0];
-            document.getElementById('mEventName').value = ev.eventName;
-            document.getElementById('mStatus').value = ev.statusProgress || 'BOOKED';
-            document.getElementById('mCancelReason').value = ev.cancelReason || '';
-            document.getElementById('mCameraTeam').value = ev.cameraTeam || '';
-            document.getElementById('mPreWedDate').value = ev.preWedDate || '';
-            document.getElementById('mAlbumDueDate').value = ev.albumDueDate || '';
-            document.getElementById('mVideoDueDate').value = ev.videoDueDate || '';
-            document.getElementById('mOverallCost').value = ev.overallCost || 0;
-
-            const container = document.getElementById('paymentRowsContainer');
-            container.innerHTML = '';
-            (ev.payments || []).forEach(p => addPaymentRow(p.amount, p.date, p.mode, p.ref));
-
-            recalculateModalPayments();
-            toggleCancelReasonField();
-            document.getElementById('eventModal').style.display = 'flex';
-        }
-
-        function addPaymentRow(amount = '', date = '', mode = 'GPay / PhonePe', ref = '') {
-            const container = document.getElementById('paymentRowsContainer');
-            const row = document.createElement('div');
-            row.className = 'payment-row';
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            row.innerHTML = `
-                <input type="number" placeholder="Amount (Rs.)" class="p-amount" value="${amount}" oninput="recalculateModalPayments()" required>
-                <input type="date" class="p-date" value="${date || todayStr}" required>
-                <select class="p-mode">
-                    <option ${mode==='GPay / PhonePe'?'selected':''}>GPay / PhonePe</option>
-                    <option ${mode==='Cash'?'selected':''}>Cash</option>
-                    <option ${mode==='Bank Transfer'?'selected':''}>Bank Transfer</option>
-                    <option ${mode==='Card'?'selected':''}>Card</option>
-                </select>
-                <input type="text" placeholder="Ref/Txn ID" class="p-ref" value="${ref}">
-                <button type="button" class="remove-pay-btn" onclick="removePaymentRow(this)">&times;</button>
-            `;
-            container.appendChild(row);
-            recalculateModalPayments();
-        }
-
-        function removePaymentRow(btn) {
-            btn.parentElement.remove();
-            recalculateModalPayments();
-        }
-
-        function recalculateModalPayments() {
-            const overallCost = parseFloat(document.getElementById('mOverallCost').value) || 0;
-            const amountInputs = document.querySelectorAll('.p-amount');
-            let totalPaid = 0;
-            amountInputs.forEach(input => {
-                totalPaid += parseFloat(input.value) || 0;
-            });
-
-            const remaining = overallCost - totalPaid;
-            document.getElementById('mTotalPaidText').innerText = `Rs. ${totalPaid.toLocaleString()}`;
-            document.getElementById('mRemainingBalText').innerText = `Rs. ${remaining.toLocaleString()}`;
-            document.getElementById('mRemainingBalText').style.color = remaining <= 0 ? '#10b981' : '#ef4444';
+        // 7. UI Controls (Modal Opens & Edits)
+        function openModal() {
+            form.reset();
+            document.getElementById('event-id').value = '';
+            document.getElementById('modal-title').innerText = 'Add New Event';
+            modal.classList.remove('hidden');
         }
 
         function closeModal() {
-            document.getElementById('eventModal').style.display = 'none';
+            modal.classList.add('hidden');
         }
 
-        function closeModalOnOverlay(e) {
-            if (e.target.id === 'eventModal') closeModal();
+        function editEvent(id, title, date, time, location, description) {
+            document.getElementById('event-id').value = id;
+            document.getElementById('event-title').value = title;
+            document.getElementById('event-date').value = date;
+            document.getElementById('event-time').value = time;
+            document.getElementById('event-location').value = location;
+            document.getElementById('event-description').value = description;
+            document.getElementById('modal-title').innerText = 'Edit Event';
+            modal.classList.remove('hidden');
         }
 
-        function saveModalChanges(e) {
-            e.preventDefault();
-            const id = parseInt(document.getElementById('modalEventId').value);
-            const ev = events.find(item => item.id === id);
-            if (ev) {
-                ev.createdDate = document.getElementById('mCreatedDate').value;
-                ev.eventName = document.getElementById('mEventName').value;
-                ev.statusProgress = document.getElementById('mStatus').value;
-                ev.cancelReason = ev.statusProgress === 'CANCELED' ? document.getElementById('mCancelReason').value : '';
-                ev.cameraTeam = document.getElementById('mCameraTeam').value;
-                ev.preWedDate = document.getElementById('mPreWedDate').value;
-                ev.albumDueDate = document.getElementById('mAlbumDueDate').value;
-                ev.videoDueDate = document.getElementById('mVideoDueDate').value;
-                ev.overallCost = parseFloat(document.getElementById('mOverallCost').value) || 0;
-
-                const rows = document.querySelectorAll('.payment-row');
-                ev.payments = [];
-                rows.forEach(r => {
-                    const amt = parseFloat(r.querySelector('.p-amount').value) || 0;
-                    if (amt > 0) {
-                        ev.payments.push({
-                            amount: amt,
-                            date: r.querySelector('.p-date').value,
-                            mode: r.querySelector('.p-mode').value,
-                            ref: r.querySelector('.p-ref').value
-                        });
-                    }
-                });
-
-                saveAndRender();
-            }
-            closeModal();
+        function escapeHtml(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, "&quot;");
         }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).style.display = 'block';
-            event.target.classList.add('active');
-        }
-
-        function updateStats() {
-            const activeEvents = events.filter(e => e.statusProgress !== 'CANCELED');
-            const totalRev = activeEvents.reduce((sum, e) => sum + (e.overallCost || 0), 0);
-            const totalPaid = activeEvents.reduce((sum, e) => sum + calculateTotalPaid(e), 0);
-            
-            document.getElementById('stat-total').innerText = events.length;
-            document.getElementById('stat-revenue').innerText = `Rs. ${totalRev.toLocaleString()}`;
-            document.getElementById('stat-advance').innerText = `Rs. ${totalPaid.toLocaleString()}`;
-            document.getElementById('stat-balance').innerText = `Rs. ${(totalRev - totalPaid).toLocaleString()}`;
-        }
-
-        function renderEvents() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const tbody = document.getElementById('trackerTableBody');
-            tbody.innerHTML = '';
-
-            const filtered = events.filter(e => 
-                e.eventName.toLowerCase().includes(query) || 
-                (e.clientName && e.clientName.toLowerCase().includes(query))
-            );
-
-            filtered.forEach(e => {
-                const tr = document.createElement('tr');
-                tr.onclick = () => openModal(e.id);
-                
-                const isDelivered = e.statusProgress === 'DELIVERED';
-                const isCanceled = e.statusProgress === 'CANCELED';
-                if (isDelivered) tr.classList.add('row-delivered');
-
-                const totalPaid = calculateTotalPaid(e);
-                const remainingBal = (e.overallCost || 0) - totalPaid;
-
-                tr.innerHTML = `
-                    <td>${e.createdDate || '-'}</td>
-                    <td><strong>${e.eventName}</strong> ${isDelivered ? '✅' : ''}</td>
-                    <td>${e.weddingDate || '-'}</td>
-                    <td>${e.clientName || '-'}</td>
-                    <td>${e.package}</td>
-                    <td>Rs. ${(e.overallCost || 0).toLocaleString()}</td>
-                    <td style="color: #10b981; font-weight: bold;">Rs. ${totalPaid.toLocaleString()}</td>
-                    <td style="color: ${remainingBal <= 0 ? '#10b981' : '#ef4444'}; font-weight: bold;">Rs. ${remainingBal.toLocaleString()}</td>
-                    <td><span class="status-tag ${isDelivered ? 'delivered' : (isCanceled ? 'canceled' : '')}">${e.statusProgress || 'BOOKED'}</span></td>
-                    <td>
-                        <div class="actions-cell">
-                            <button class="actions-btn" onclick="deleteEvent(${e.id}, event)">Delete</button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderPending() {
-            const tbody = document.getElementById('pendingTableBody');
-            tbody.innerHTML = '';
-
-            const pendingEvents = events.filter(e => e.statusProgress !== 'DELIVERED' && e.statusProgress !== 'CANCELED');
-
-            pendingEvents.forEach(e => {
-                const tr = document.createElement('tr');
-                tr.onclick = () => openModal(e.id);
-                const totalPaid = calculateTotalPaid(e);
-                const remaining = (e.overallCost || 0) - totalPaid;
-
-                tr.innerHTML = `
-                    <td><strong>${e.eventName}</strong></td>
-                    <td>${e.clientName || '-'}</td>
-                    <td>${e.weddingDate || '-'}</td>
-                    <td>${e.albumDueDate || '-'}</td>
-                    <td>${e.videoDueDate || '-'}</td>
-                    <td style="color: #ef4444; font-weight: bold;">Rs. ${remaining.toLocaleString()}</td>
-                    <td><span class="status-tag">${e.statusProgress || 'BOOKED'}</span></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function changeMonth(delta) {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = '';
-
-            const year = currentCalendarDate.getFullYear();
-            const month = currentCalendarDate.getMonth();
-
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('calendarMonthTitle').innerText = `${monthNames[month]} ${year}`;
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const cell = document.createElement('div');
-                cell.className = 'calendar-cell';
-
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                cell.innerHTML = `<span class="day-num">${d}</span>`;
-
-                // Render Wedding Events
-                const weddingEvents = events.filter(e => e.weddingDate === dateStr);
-                weddingEvents.forEach(ev => {
-                    const badge = document.createElement('div');
-                    const isDelivered = ev.statusProgress === 'DELIVERED';
-                    const isCanceled = ev.statusProgress === 'CANCELED';
-                    badge.className = `event-badge ${isDelivered ? 'delivered' : (isCanceled ? 'canceled' : '')}`;
-                    badge.innerText = `💍 ${ev.eventName}`;
-                    badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
-                    cell.appendChild(badge);
-                });
-
-                // Render Album Due Dates in Calendar
-                const albumDueEvents = events.filter(e => e.albumDueDate === dateStr);
-                albumDueEvents.forEach(ev => {
-                    const badge = document.createElement('div');
-                    badge.className = `event-badge album-due`;
-                    badge.innerText = `📖 Album Due: ${ev.eventName}`;
-                    badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
-                    cell.appendChild(badge);
-                });
-
-                grid.appendChild(cell);
-            }
-        }
-
-        function renderCharts() {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDark ? '#f8fafc' : '#1e293b';
-            const gridColor = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
-
-            if (chartInstances.status) chartInstances.status.destroy();
-            if (chartInstances.revenue) chartInstances.revenue.destroy();
-            if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
-
-            const statusCounts = {};
-            events.forEach(e => {
-                const st = e.statusProgress || 'BOOKED';
-                statusCounts[st] = (statusCounts[st] || 0) + 1;
-            });
-
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
-            chartInstances.status = new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(statusCounts),
-                    datasets: [{
-                        data: Object.values(statusCounts),
-                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b', '#ef4444'],
-                        borderWidth: 2,
-                        borderColor: isDark ? '#1e293b' : '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: textColor, font: { size: 10 } } } }
-                }
-            });
-
-            const monthlyData = {};
-            events.forEach(e => {
-                if (!e.weddingDate) return;
-                const monthKey = e.weddingDate.substring(0, 7);
-                if (!monthlyData[monthKey]) monthlyData[monthKey] = { revenue: 0, collected: 0, count: 0 };
-                
-                if (e.statusProgress !== 'CANCELED') {
-                    const cost = e.overallCost || 0;
-                    const paid = calculateTotalPaid(e);
-                    monthlyData[monthKey].revenue += cost;
-                    monthlyData[monthKey].collected += paid;
-                }
-                monthlyData[monthKey].count += 1;
-            });
-
-            const sortedMonths = Object.keys(monthlyData).sort();
-
-            // Financial Trend Area Chart
-            const ctxRev = document.getElementById('revenueChart').getContext('2d');
-            chartInstances.revenue = new Chart(ctxRev, {
-                type: 'line',
-                data: {
-                    labels: sortedMonths,
-                    datasets: [
-                        { 
-                            label: 'Overall Cost', 
-                            data: sortedMonths.map(m => monthlyData[m].revenue), 
-                            borderColor: '#3b82f6', 
-                            backgroundColor: 'rgba(59, 130, 246, 0.25)', 
-                            fill: true,
-                            tension: 0.3 
-                        },
-                        { 
-                            label: 'Total Collected', 
-                            data: sortedMonths.map(m => monthlyData[m].collected), 
-                            borderColor: '#10b981', 
-                            backgroundColor: 'rgba(16, 185, 129, 0.25)', 
-                            fill: true,
-                            tension: 0.3 
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true }
-                    },
-                    plugins: { legend: { labels: { color: textColor } } }
-                }
-            });
-
-            // Monthly Booked Events Area Chart
-            const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
-            chartInstances.monthlyEvents = new Chart(ctxEv, {
-                type: 'line',
-                data: {
-                    labels: sortedMonths,
-                    datasets: [{
-                        label: 'Events',
-                        data: sortedMonths.map(m => monthlyData[m].count),
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.25)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor, precision: 0 }, grid: { color: gridColor }, beginAtZero: true }
-                    },
-                    plugins: { legend: { labels: { color: textColor } } }
-                }
-            });
-        }
-
-        loadSavedTheme();
-        saveAndRender();
     </script>
 </body>
 </html>
