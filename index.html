@@ -9,6 +9,7 @@
     
     <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
@@ -95,7 +96,22 @@
             margin-left: 8px;
         }
 
-        .theme-toggle {
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-chip {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .theme-toggle, .btn-logout {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             color: var(--text-color);
@@ -107,6 +123,68 @@
             align-items: center;
             gap: 8px;
             box-shadow: var(--shadow);
+        }
+
+        .btn-logout {
+            background: #b91c1c;
+            color: white;
+            border: none;
+        }
+
+        .btn-logout:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Auth Screen Styling */
+        #authOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 35px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .auth-card h2 {
+            justify-content: center;
+            color: #b91c1c;
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+        }
+
+        .auth-card p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .auth-toggle-link {
+            color: var(--accent);
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .auth-error {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            display: none;
         }
 
         .stats-grid {
@@ -199,6 +277,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+            text-align: left;
         }
 
         label {
@@ -490,306 +569,345 @@
             margin-top: 10px;
             font-weight: bold;
         }
+
+        .app-content {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="brand">
-            <h1>RED WINE STUDIO</h1>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">
-                Event Tracker & Multi-Payment Ledger 
-                <span class="status-pill" id="syncStatus">🟢 Live Cloud Sync</span>
+    <!-- LOGIN / REGISTER OVERLAY MODAL -->
+    <div id="authOverlay">
+        <div class="auth-card">
+            <h2 id="authTitle">RED WINE STUDIO</h2>
+            <p id="authSubtitle">Please sign in to access the studio dashboard</p>
+            
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Email Address</label>
+                    <input type="email" id="authEmail" placeholder="user@redwine.com" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Password</label>
+                    <input type="password" id="authPassword" placeholder="••••••••" required minlength="6">
+                </div>
+
+                <button type="submit" id="authSubmitBtn" class="btn" style="width: 100%; margin-top: 0;">Sign In</button>
+            </form>
+
+            <p id="authError" class="auth-error"></p>
+
+            <p style="margin-top: 20px; font-size: 0.85rem;">
+                <span id="authToggleText">Need an account?</span> 
+                <span class="auth-toggle-link" onclick="toggleAuthMode()" id="authToggleLink">Create New User</span>
             </p>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
-        </button>
-    </header>
-
-    <div class="tab-buttons">
-        <button class="tab-btn active" onclick="switchTab(event, 'trackerTab')">📕 Studio Dashboard & Events</button>
-        <button class="tab-btn" onclick="switchTab(event, 'pendingTab')">⏳ Pending Deliverables</button>
-        <button class="tab-btn" onclick="switchTab(event, 'calendarTab')">📅 Event Calendar View</button>
     </div>
 
-    <!-- Tab 1: Studio Dashboard + Events -->
-    <div id="trackerTab" class="tab-content">
-
-        <!-- 1. STUDIO ANALYTICS DASHBOARD -->
-        <div class="section-card">
-            <h2>📊 Studio Analytics Dashboard</h2>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h4>TOTAL EVENTS</h4>
-                    <p id="stat-total">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>TOTAL REVENUE</h4>
-                    <p id="stat-revenue">Rs. 0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>TOTAL COLLECTED</h4>
-                    <p id="stat-advance">Rs. 0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>REMAINING BALANCE</h4>
-                    <p id="stat-balance">Rs. 0</p>
-                </div>
+    <!-- MAIN APP WRAPPER -->
+    <div id="appContent" class="app-content">
+        <header>
+            <div class="brand">
+                <h1>RED WINE STUDIO</h1>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">
+                    Event Tracker & Multi-Payment Ledger 
+                    <span class="status-pill" id="syncStatus">🟢 Live Cloud Sync</span>
+                </p>
             </div>
-
-            <div class="charts-grid">
-                <div class="chart-box">
-                    <h3>📌 Status Breakdown</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <h3>💰 Financial Trend (Area Graph)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <h3>📅 Monthly Booked Events (Area Graph)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="monthlyEventsChart"></canvas>
-                    </div>
-                </div>
+            <div class="header-actions">
+                <span id="userChip" class="user-chip">👤 User</span>
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+                </button>
+                <button class="btn-logout" onclick="signOutUser()">Sign Out</button>
             </div>
+        </header>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab(event, 'trackerTab')">📕 Studio Dashboard & Events</button>
+            <button class="tab-btn" onclick="switchTab(event, 'pendingTab')">⏳ Pending Deliverables</button>
+            <button class="tab-btn" onclick="switchTab(event, 'calendarTab')">📅 Event Calendar View</button>
         </div>
 
-        <!-- 2. CREATE NEW EVENT FORM -->
-        <div class="section-card">
-            <h2>➕ Create New Event</h2>
-            <form id="eventForm" onsubmit="addEvent(event)">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Booking Date (Created Date) *</label>
-                        <input type="date" id="createdDate" required>
+        <!-- Tab 1: Studio Dashboard + Events -->
+        <div id="trackerTab" class="tab-content">
+
+            <!-- 1. STUDIO ANALYTICS DASHBOARD -->
+            <div class="section-card">
+                <h2>📊 Studio Analytics Dashboard</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>TOTAL EVENTS</h4>
+                        <p id="stat-total">0</p>
                     </div>
-                    <div class="form-group">
-                        <label>Event Name *</label>
-                        <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
+                    <div class="stat-card">
+                        <h4>TOTAL REVENUE</h4>
+                        <p id="stat-revenue">Rs. 0</p>
                     </div>
-                    <div class="form-group">
-                        <label>Wedding Date *</label>
-                        <input type="date" id="weddingDate" required>
+                    <div class="stat-card">
+                        <h4>TOTAL COLLECTED</h4>
+                        <p id="stat-advance">Rs. 0</p>
                     </div>
-                    <div class="form-group">
-                        <label>Channel</label>
-                        <select id="channel">
-                            <option>Direct studio</option>
-                            <option>Phone call</option>
-                            <option>Instagram</option>
-                            <option>Referral</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Owner</label>
-                        <input type="text" id="owner" placeholder="Neeraj D Raj">
-                    </div>
-                    <div class="form-group">
-                        <label>Package</label>
-                        <select id="package">
-                            <option>Single Side Basic</option>
-                            <option>Both side premium</option>
-                            <option>Candid Photography</option>
-                            <option>Full Wedding Coverage</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Add-on Package</label>
-                        <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
-                    </div>
-                    <div class="form-group">
-                        <label>Client Name</label>
-                        <input type="text" id="clientName" placeholder="John Doe">
-                    </div>
-                    <div class="form-group">
-                        <label>Client Phone</label>
-                        <input type="tel" id="clientPhone" placeholder="+91...">
-                    </div>
-                    <div class="form-group">
-                        <label>Overall Cost (Rs.)</label>
-                        <input type="number" id="overallCost" placeholder="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Booking Advance Paid (Rs.)</label>
-                        <input type="number" id="advancePaid" placeholder="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Advance Payment Mode</label>
-                        <select id="advanceMode">
-                            <option>GPay / PhonePe</option>
-                            <option>Cash</option>
-                            <option>Bank Transfer</option>
-                            <option>Card</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Advance Reference / Txn ID</label>
-                        <input type="text" id="advanceRef" placeholder="e.g. UPI/12345678">
-                    </div>
-                    <div class="form-group">
-                        <label>Pre-Wed Shoot Date (Optional)</label>
-                        <input type="date" id="preWedDate">
+                    <div class="stat-card">
+                        <h4>REMAINING BALANCE</h4>
+                        <p id="stat-balance">Rs. 0</p>
                     </div>
                 </div>
-                <button type="submit" class="btn">Save Event to Cloud</button>
-            </form>
-        </div>
 
-        <!-- 3. STUDIO EVENTS LIST TABLE -->
-        <div class="section-card">
-            <div class="table-controls">
-                <h2>📋 Studio Events List</h2>
-                <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+                <div class="charts-grid">
+                    <div class="chart-box">
+                        <h3>📌 Status Breakdown</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>💰 Financial Trend (Area Graph)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>📅 Monthly Booked Events (Area Graph)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="monthlyEventsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
 
+            <!-- 2. CREATE NEW EVENT FORM -->
+            <div class="section-card">
+                <h2>➕ Create New Event</h2>
+                <form id="eventForm" onsubmit="addEvent(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Booking Date (Created Date) *</label>
+                            <input type="date" id="createdDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Event Name *</label>
+                            <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
+                        </div>
+                        <div class="form-group">
+                            <label>Wedding Date *</label>
+                            <input type="date" id="weddingDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Channel</label>
+                            <select id="channel">
+                                <option>Direct studio</option>
+                                <option>Phone call</option>
+                                <option>Instagram</option>
+                                <option>Referral</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Owner</label>
+                            <input type="text" id="owner" placeholder="Neeraj D Raj">
+                        </div>
+                        <div class="form-group">
+                            <label>Package</label>
+                            <select id="package">
+                                <option>Single Side Basic</option>
+                                <option>Both side premium</option>
+                                <option>Candid Photography</option>
+                                <option>Full Wedding Coverage</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Add-on Package</label>
+                            <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
+                        </div>
+                        <div class="form-group">
+                            <label>Client Name</label>
+                            <input type="text" id="clientName" placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label>Client Phone</label>
+                            <input type="tel" id="clientPhone" placeholder="+91...">
+                        </div>
+                        <div class="form-group">
+                            <label>Overall Cost (Rs.)</label>
+                            <input type="number" id="overallCost" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Booking Advance Paid (Rs.)</label>
+                            <input type="number" id="advancePaid" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Advance Payment Mode</label>
+                            <select id="advanceMode">
+                                <option>GPay / PhonePe</option>
+                                <option>Cash</option>
+                                <option>Bank Transfer</option>
+                                <option>Card</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Advance Reference / Txn ID</label>
+                            <input type="text" id="advanceRef" placeholder="e.g. UPI/12345678">
+                        </div>
+                        <div class="form-group">
+                            <label>Pre-Wed Shoot Date (Optional)</label>
+                            <input type="date" id="preWedDate">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">Save Event to Cloud</button>
+                </form>
+            </div>
+
+            <!-- 3. STUDIO EVENTS LIST TABLE -->
+            <div class="section-card">
+                <div class="table-controls">
+                    <h2>📋 Studio Events List</h2>
+                    <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Booking Date</th>
+                                <th>Event Name</th>
+                                <th>Wedding Date</th>
+                                <th>Client</th>
+                                <th>Package</th>
+                                <th>Overall Cost</th>
+                                <th>Total Paid</th>
+                                <th>Remaining Bal.</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trackerTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Tab 2: What's Pending Today -->
+        <div id="pendingTab" class="section-card tab-content" style="display: none;">
+            <h2>⏳ Pending Deliverables & Follow-ups</h2>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th>Booking Date</th>
                             <th>Event Name</th>
-                            <th>Wedding Date</th>
                             <th>Client</th>
-                            <th>Package</th>
-                            <th>Overall Cost</th>
-                            <th>Total Paid</th>
-                            <th>Remaining Bal.</th>
+                            <th>Wedding Date</th>
+                            <th>Album Due Date</th>
+                            <th>Video Due Date</th>
+                            <th>Remaining Balance</th>
                             <th>Status</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody id="trackerTableBody"></tbody>
+                    <tbody id="pendingTableBody"></tbody>
                 </table>
             </div>
         </div>
 
-    </div>
-
-    <!-- Tab 2: What's Pending Today -->
-    <div id="pendingTab" class="section-card tab-content" style="display: none;">
-        <h2>⏳ Pending Deliverables & Follow-ups</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Event Name</th>
-                        <th>Client</th>
-                        <th>Wedding Date</th>
-                        <th>Album Due Date</th>
-                        <th>Video Due Date</th>
-                        <th>Remaining Balance</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="pendingTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Tab 3: Interactive Calendar View -->
-    <div id="calendarTab" class="section-card tab-content" style="display: none;">
-        <div class="calendar-header">
-            <button class="btn" onclick="changeMonth(-1)" style="margin: 0;">◀ Prev</button>
-            <h2 id="calendarMonthTitle">Month Year</h2>
-            <button class="btn" onclick="changeMonth(1)" style="margin: 0;">Next ▶</button>
-        </div>
-
-        <div class="calendar-grid" id="calendarHead">
-            <div class="calendar-day-head">Sun</div>
-            <div class="calendar-day-head">Mon</div>
-            <div class="calendar-day-head">Tue</div>
-            <div class="calendar-day-head">Wed</div>
-            <div class="calendar-day-head">Thu</div>
-            <div class="calendar-day-head">Fri</div>
-            <div class="calendar-day-head">Sat</div>
-        </div>
-        <div class="calendar-grid" id="calendarGrid" style="margin-top: 5px;"></div>
-    </div>
-
-    <!-- Edit Event & Payment Modal -->
-    <div class="modal-overlay" id="eventModal" onclick="closeModalOnOverlay(event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Event & Payment Ledger</h3>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
+        <!-- Tab 3: Interactive Calendar View -->
+        <div id="calendarTab" class="section-card tab-content" style="display: none;">
+            <div class="calendar-header">
+                <button class="btn" onclick="changeMonth(-1)" style="margin: 0;">◀ Prev</button>
+                <h2 id="calendarMonthTitle">Month Year</h2>
+                <button class="btn" onclick="changeMonth(1)" style="margin: 0;">Next ▶</button>
             </div>
-            <form id="editForm" onsubmit="saveModalChanges(event)">
-                <input type="hidden" id="modalEventId">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Booking Date (Created Date)</label>
-                        <input type="date" id="mCreatedDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Event Name</label>
-                        <input type="text" id="mEventName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Status Progress</label>
-                        <select id="mStatus" onchange="toggleCancelReasonField()">
-                            <option>BOOKED</option>
-                            <option>PRE-WED DONE</option>
-                            <option>WEDDING DONE</option>
-                            <option>CUSTOMER SELECTION</option>
-                            <option>EDITING DONE</option>
-                            <option>OUT FOR DELIVERY</option>
-                            <option>DELIVERED</option>
-                            <option>CANCELED</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="cancelReasonGroup" style="display: none;">
-                        <label>Cancellation Reason *</label>
-                        <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
-                    </div>
-                    <div class="form-group">
-                        <label>Camera Team</label>
-                        <input type="text" id="mCameraTeam" placeholder="Camera Team details">
-                    </div>
-                    <div class="form-group">
-                        <label>Pre-Wed Shoot Date</label>
-                        <input type="date" id="mPreWedDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Album Due Date</label>
-                        <input type="date" id="mAlbumDueDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Video Due Date</label>
-                        <input type="date" id="mVideoDueDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Overall Cost (Rs.)</label>
-                        <input type="number" id="mOverallCost" oninput="recalculateModalPayments()">
-                    </div>
+
+            <div class="calendar-grid" id="calendarHead">
+                <div class="calendar-day-head">Sun</div>
+                <div class="calendar-day-head">Mon</div>
+                <div class="calendar-day-head">Tue</div>
+                <div class="calendar-day-head">Wed</div>
+                <div class="calendar-day-head">Thu</div>
+                <div class="calendar-day-head">Fri</div>
+                <div class="calendar-day-head">Sat</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid" style="margin-top: 5px;"></div>
+        </div>
+
+        <!-- Edit Event & Payment Modal -->
+        <div class="modal-overlay" id="eventModal" onclick="closeModalOnOverlay(event)">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Event & Payment Ledger</h3>
+                    <button class="close-modal" onclick="closeModal()">&times;</button>
                 </div>
-
-                <div class="payments-box">
-                    <h4>
-                        💳 Payment Installments Ledger
-                        <button type="button" class="btn btn-secondary" onclick="addPaymentRow()" style="padding: 4px 10px; margin: 0; font-size: 0.8rem;">+ Add Payment</button>
-                    </h4>
-                    <div id="paymentRowsContainer"></div>
-
-                    <div class="summary-banner">
-                        <div>Total Paid: <span id="mTotalPaidText" style="color: #10b981;">Rs. 0</span></div>
-                        <div>Remaining Balance: <span id="mRemainingBalText" style="color: #ef4444;">Rs. 0</span></div>
+                <form id="editForm" onsubmit="saveModalChanges(event)">
+                    <input type="hidden" id="modalEventId">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Booking Date (Created Date)</label>
+                            <input type="date" id="mCreatedDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Event Name</label>
+                            <input type="text" id="mEventName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status Progress</label>
+                            <select id="mStatus" onchange="toggleCancelReasonField()">
+                                <option>BOOKED</option>
+                                <option>PRE-WED DONE</option>
+                                <option>WEDDING DONE</option>
+                                <option>CUSTOMER SELECTION</option>
+                                <option>EDITING DONE</option>
+                                <option>OUT FOR DELIVERY</option>
+                                <option>DELIVERED</option>
+                                <option>CANCELED</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="cancelReasonGroup" style="display: none;">
+                            <label>Cancellation Reason *</label>
+                            <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
+                        </div>
+                        <div class="form-group">
+                            <label>Camera Team</label>
+                            <input type="text" id="mCameraTeam" placeholder="Camera Team details">
+                        </div>
+                        <div class="form-group">
+                            <label>Pre-Wed Shoot Date</label>
+                            <input type="date" id="mPreWedDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Album Due Date</label>
+                            <input type="date" id="mAlbumDueDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Video Due Date</label>
+                            <input type="date" id="mVideoDueDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Overall Cost (Rs.)</label>
+                            <input type="number" id="mOverallCost" oninput="recalculateModalPayments()">
+                        </div>
                     </div>
-                </div>
 
-                <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Update Event & Sync Cloud</button>
-            </form>
+                    <div class="payments-box">
+                        <h4>
+                            💳 Payment Installments Ledger
+                            <button type="button" class="btn btn-secondary" onclick="addPaymentRow()" style="padding: 4px 10px; margin: 0; font-size: 0.8rem;">+ Add Payment</button>
+                        </h4>
+                        <div id="paymentRowsContainer"></div>
+
+                        <div class="summary-banner">
+                            <div>Total Paid: <span id="mTotalPaidText" style="color: #10b981;">Rs. 0</span></div>
+                            <div>Remaining Balance: <span id="mRemainingBalText" style="color: #ef4444;">Rs. 0</span></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Update Event & Sync Cloud</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <script>
-        // 1. YOUR EXACT FIREBASE CONFIGURATION
+        // 1. FIREBASE CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyDD6KHNyFKhZBisGh8MJNnnKG6p9TjrHOY",
             authDomain: "red-wine-studio.firebaseapp.com",
@@ -800,28 +918,85 @@
             measurementId: "G-4SZB4YHF1Z"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase Services
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
         let events = [];
         let currentCalendarDate = new Date();
         let chartInstances = {};
+        let isSignUpMode = false;
+        let unsubscribeRealtime = null;
 
         document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
 
-        // 2. REAL-TIME CLOUD LISTENER
-        db.collection("events").onSnapshot((snapshot) => {
-            events = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            renderAll();
-        }, (error) => {
-            console.error("Firebase Sync Error: ", error);
-            document.getElementById('syncStatus').innerText = '🔴 Sync Error';
-            document.getElementById('syncStatus').style.color = '#ef4444';
+        // 2. AUTHENTICATION STATE OBSERVER
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is logged in
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                document.getElementById('userChip').innerText = `👤 ${user.email}`;
+                
+                // Attach real-time cloud listener
+                attachRealtimeListener();
+            } else {
+                // User is logged out
+                document.getElementById('authOverlay').style.display = 'flex';
+                document.getElementById('appContent').style.display = 'none';
+                if (unsubscribeRealtime) unsubscribeRealtime();
+            }
         });
+
+        // Toggle Login vs Signup
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('authTitle').innerText = isSignUpMode ? "CREATE USER" : "RED WINE STUDIO";
+            document.getElementById('authSubtitle').innerText = isSignUpMode ? "Register a new team account" : "Please sign in to access the studio dashboard";
+            document.getElementById('authSubmitBtn').innerText = isSignUpMode ? "Register User" : "Sign In";
+            document.getElementById('authToggleText').innerText = isSignUpMode ? "Already have an account?" : "Need an account?";
+            document.getElementById('authToggleLink').innerText = isSignUpMode ? "Sign In" : "Create New User";
+            document.getElementById('authError').style.display = 'none';
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const errEl = document.getElementById('authError');
+            errEl.style.display = 'none';
+
+            try {
+                if (isSignUpMode) {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                } else {
+                    await auth.signInWithEmailAndPassword(email, password);
+                }
+            } catch (err) {
+                errEl.innerText = err.message;
+                errEl.style.display = 'block';
+            }
+        }
+
+        function signOutUser() {
+            auth.signOut();
+        }
+
+        // 3. REAL-TIME CLOUD LISTENER
+        function attachRealtimeListener() {
+            unsubscribeRealtime = db.collection("events").onSnapshot((snapshot) => {
+                events = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderAll();
+            }, (error) => {
+                console.error("Firebase Sync Error: ", error);
+                document.getElementById('syncStatus').innerText = '🔴 Sync Error';
+                document.getElementById('syncStatus').style.color = '#ef4444';
+            });
+        }
 
         function renderAll() {
             renderEvents();
