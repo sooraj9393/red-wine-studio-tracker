@@ -300,6 +300,11 @@
             border-color: #b91c1c;
         }
 
+        select[multiple] {
+            height: 90px;
+            padding: 5px;
+        }
+
         .btn {
             background: #b91c1c;
             color: white;
@@ -573,6 +578,34 @@
         .app-content {
             display: none;
         }
+
+        /* Custom Tag Pills for Multi-select Display */
+        .member-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        .member-pill {
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: bold;
+        }
+
+        .add-inline-btn {
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -626,6 +659,8 @@
 
         <div class="tab-buttons">
             <button class="tab-btn active" onclick="switchTab(event, 'trackerTab')">📕 Studio Dashboard & Events</button>
+            <button class="tab-btn" onclick="switchTab(event, 'teamTab')">👥 Team Members</button>
+            <button class="tab-btn" onclick="switchTab(event, 'employeeTab')">💼 Employee Dashboard</button>
             <button class="tab-btn" onclick="switchTab(event, 'pendingTab')">⏳ Pending Deliverables</button>
             <button class="tab-btn" onclick="switchTab(event, 'calendarTab')">📅 Event Calendar View</button>
         </div>
@@ -789,6 +824,74 @@
 
         </div>
 
+        <!-- Tab: Team Members Management -->
+        <div id="teamTab" class="section-card tab-content" style="display: none;">
+            <h2>👥 Team Members Directory</h2>
+            <form id="teamMemberForm" onsubmit="addTeamMember(event)" style="margin-bottom: 20px;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Member Name *</label>
+                        <input type="text" id="tmName" required placeholder="e.g. Alex Paul">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Role</label>
+                        <select id="tmRole">
+                            <option value="Camera">Cameraman / Photographer</option>
+                            <option value="Video">Video Editor</option>
+                            <option value="Album">Album Editor</option>
+                            <option value="All Rounder">All-Rounder</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="tmPhone" placeholder="+91...">
+                    </div>
+                </div>
+                <button type="submit" class="btn">+ Add Team Member</button>
+            </form>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Phone</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teamMembersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Employee Work Dashboard -->
+        <div id="employeeTab" class="section-card tab-content" style="display: none;">
+            <div class="table-controls">
+                <h2>💼 Employee Assignment Dashboard</h2>
+                <select id="employeeFilter" onchange="renderEmployeeDashboard()" style="width: 250px;">
+                    <option value="">-- Select Team Member --</option>
+                </select>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event Name</th>
+                            <th>Client</th>
+                            <th>Wedding Date</th>
+                            <th>Assigned Role(s)</th>
+                            <th>Album Due Date</th>
+                            <th>Video Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeDashboardTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Tab 2: What's Pending Today -->
         <div id="pendingTab" class="section-card tab-content" style="display: none;">
             <h2>⏳ Pending Deliverables & Follow-ups</h2>
@@ -865,10 +968,30 @@
                             <label>Cancellation Reason *</label>
                             <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
                         </div>
+
+                        <!-- Team Selection Controls with Inline Add -->
                         <div class="form-group">
-                            <label>Camera Team</label>
-                            <input type="text" id="mCameraTeam" placeholder="Camera Team details">
+                            <label>
+                                Camera Team (Hold Ctrl/Cmd for multiple)
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Camera')">+ Add New</button>
+                            </label>
+                            <select id="mCameraTeam" multiple></select>
                         </div>
+                        <div class="form-group">
+                            <label>
+                                Video Editing Team (Hold Ctrl/Cmd for multiple)
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Video')">+ Add New</button>
+                            </label>
+                            <select id="mVideoTeam" multiple></select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                Album Editing Team (Hold Ctrl/Cmd for multiple)
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Album')">+ Add New</button>
+                            </label>
+                            <select id="mAlbumTeam" multiple></select>
+                        </div>
+
                         <div class="form-group">
                             <label>Pre-Wed Shoot Date</label>
                             <input type="date" id="mPreWedDate">
@@ -940,10 +1063,12 @@
         const auth = firebase.auth();
 
         let events = [];
+        let teamMembers = [];
         let currentCalendarDate = new Date();
         let chartInstances = {};
         let isSignUpMode = false;
         let unsubscribeRealtime = null;
+        let unsubscribeTeamRealtime = null;
 
         document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
 
@@ -955,13 +1080,15 @@
                 document.getElementById('appContent').style.display = 'block';
                 document.getElementById('userChip').innerText = `👤 ${user.email}`;
                 
-                // Attach real-time cloud listener
+                // Attach real-time cloud listeners
                 attachRealtimeListener();
+                attachTeamRealtimeListener();
             } else {
                 // User is logged out
                 document.getElementById('authOverlay').style.display = 'flex';
                 document.getElementById('appContent').style.display = 'none';
                 if (unsubscribeRealtime) unsubscribeRealtime();
+                if (unsubscribeTeamRealtime) unsubscribeTeamRealtime();
             }
         });
 
@@ -999,7 +1126,7 @@
             auth.signOut();
         }
 
-        // 3. REAL-TIME CLOUD LISTENER
+        // 3. REAL-TIME CLOUD LISTENERS
         function attachRealtimeListener() {
             unsubscribeRealtime = db.collection("events").onSnapshot((snapshot) => {
                 events = snapshot.docs.map(doc => ({
@@ -1014,12 +1141,28 @@
             });
         }
 
+        function attachTeamRealtimeListener() {
+            unsubscribeTeamRealtime = db.collection("team_members").onSnapshot((snapshot) => {
+                teamMembers = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderTeamMembers();
+                populateTeamSelects();
+                populateEmployeeFilter();
+                renderEmployeeDashboard();
+            }, (error) => {
+                console.error("Firebase Team Sync Error: ", error);
+            });
+        }
+
         function renderAll() {
             renderEvents();
             renderPending();
             renderCalendar();
             updateStats();
             renderCharts();
+            renderEmployeeDashboard();
         }
 
         function addDays(dateStr, days) {
@@ -1080,7 +1223,9 @@
                 clientPhone: document.getElementById('clientPhone').value,
                 overallCost: parseFloat(document.getElementById('overallCost').value) || 0,
                 payments: paymentsList,
-                cameraTeam: '',
+                cameraTeam: [],
+                videoTeam: [],
+                albumTeam: [],
                 preWedDate: document.getElementById('preWedDate').value || '',
                 albumDueDate: autoDueDate,
                 videoDueDate: autoDueDate,
@@ -1102,6 +1247,133 @@
             }
         }
 
+        /* --- TEAM MANAGEMENT MODULE LOGIC --- */
+        async function addTeamMember(e) {
+            e.preventDefault();
+            const name = document.getElementById('tmName').value.trim();
+            const role = document.getElementById('tmRole').value;
+            const phone = document.getElementById('tmPhone').value.trim();
+
+            if (!name) return;
+
+            await db.collection("team_members").add({
+                name, role, phone
+            });
+
+            document.getElementById('teamMemberForm').reset();
+        }
+
+        async function promptAddTeamMember(defaultRole = 'Camera') {
+            const name = prompt(`Enter new Team Member name (${defaultRole}):`);
+            if (name && name.trim()) {
+                await db.collection("team_members").add({
+                    name: name.trim(),
+                    role: defaultRole,
+                    phone: ''
+                });
+            }
+        }
+
+        async function deleteTeamMember(id, e) {
+            e.stopPropagation();
+            if (confirm('Are you sure you want to remove this team member?')) {
+                await db.collection("team_members").doc(id).delete();
+            }
+        }
+
+        function renderTeamMembers() {
+            const tbody = document.getElementById('teamMembersTableBody');
+            tbody.innerHTML = '';
+            teamMembers.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${m.name}</strong></td>
+                    <td>${m.role || 'All Rounder'}</td>
+                    <td>${m.phone || '-'}</td>
+                    <td>
+                        <button class="actions-btn" onclick="deleteTeamMember('${m.id}', event)">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateTeamSelects() {
+            const selects = ['mCameraTeam', 'mVideoTeam', 'mAlbumTeam'];
+            selects.forEach(selId => {
+                const el = document.getElementById(selId);
+                const selectedVals = Array.from(el.selectedOptions).map(o => o.value);
+                el.innerHTML = '';
+                teamMembers.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.name;
+                    opt.innerText = `${m.name} (${m.role || 'All'})`;
+                    if (selectedVals.includes(m.name)) opt.selected = true;
+                    el.appendChild(opt);
+                });
+            });
+        }
+
+        function populateEmployeeFilter() {
+            const select = document.getElementById('employeeFilter');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Select Team Member --</option>';
+            teamMembers.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.name;
+                opt.innerText = `${m.name} (${m.role || 'Member'})`;
+                if (m.name === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderEmployeeDashboard() {
+            const selectedMember = document.getElementById('employeeFilter').value;
+            const tbody = document.getElementById('employeeDashboardTableBody');
+            tbody.innerHTML = '';
+
+            if (!selectedMember) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Select a team member above to view assigned work.</td></tr>';
+                return;
+            }
+
+            const assignedEvents = events.filter(e => {
+                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : (e.cameraTeam ? [e.cameraTeam] : []);
+                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [];
+                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [];
+                return cam.includes(selectedMember) || vid.includes(selectedMember) || alb.includes(selectedMember);
+            });
+
+            if (assignedEvents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No assigned events found for ${selectedMember}.</td></tr>`;
+                return;
+            }
+
+            assignedEvents.forEach(e => {
+                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : (e.cameraTeam ? [e.cameraTeam] : []);
+                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [];
+                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [];
+
+                const roles = [];
+                if (cam.includes(selectedMember)) roles.push('Camera Team');
+                if (vid.includes(selectedMember)) roles.push('Video Editor');
+                if (alb.includes(selectedMember)) roles.push('Album Editor');
+
+                const tr = document.createElement('tr');
+                tr.onclick = () => openModal(e.id);
+                tr.innerHTML = `
+                    <td><strong>${e.eventName}</strong></td>
+                    <td>${e.clientName || '-'}</td>
+                    <td>${e.weddingDate || '-'}</td>
+                    <td><span class="status-tag" style="background:var(--accent); color:#fff;">${roles.join(', ')}</span></td>
+                    <td>${e.albumDueDate || '-'}</td>
+                    <td>${e.videoDueDate || '-'}</td>
+                    <td><span class="status-tag ${e.statusProgress === 'DELIVERED' ? 'delivered' : ''}">${e.statusProgress || 'BOOKED'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         function toggleCancelReasonField() {
             const statusVal = document.getElementById('mStatus').value;
             document.getElementById('cancelReasonGroup').style.display = statusVal === 'CANCELED' ? 'flex' : 'none';
@@ -1116,7 +1388,22 @@
             document.getElementById('mEventName').value = ev.eventName;
             document.getElementById('mStatus').value = ev.statusProgress || 'BOOKED';
             document.getElementById('mCancelReason').value = ev.cancelReason || '';
-            document.getElementById('mCameraTeam').value = ev.cameraTeam || '';
+
+            // Dynamic Multiple Team Select population & values set
+            populateTeamSelects();
+
+            const setSelectValues = (selId, vals) => {
+                const el = document.getElementById(selId);
+                const arr = Array.isArray(vals) ? vals : (vals ? [vals] : []);
+                Array.from(el.options).forEach(opt => {
+                    opt.selected = arr.includes(opt.value);
+                });
+            };
+
+            setSelectValues('mCameraTeam', ev.cameraTeam);
+            setSelectValues('mVideoTeam', ev.videoTeam);
+            setSelectValues('mAlbumTeam', ev.albumTeam);
+
             document.getElementById('mPreWedDate').value = ev.preWedDate || '';
             document.getElementById('mAlbumDueDate').value = ev.albumDueDate || '';
             document.getElementById('mVideoDueDate').value = ev.videoDueDate || '';
@@ -1267,12 +1554,19 @@
                 }
             });
 
+            const getSelectedValues = (selId) => {
+                const el = document.getElementById(selId);
+                return Array.from(el.selectedOptions).map(o => o.value);
+            };
+
             const updatedData = {
                 createdDate: document.getElementById('mCreatedDate').value,
                 eventName: document.getElementById('mEventName').value,
                 statusProgress: document.getElementById('mStatus').value,
                 cancelReason: document.getElementById('mStatus').value === 'CANCELED' ? document.getElementById('mCancelReason').value : '',
-                cameraTeam: document.getElementById('mCameraTeam').value,
+                cameraTeam: getSelectedValues('mCameraTeam'),
+                videoTeam: getSelectedValues('mVideoTeam'),
+                albumTeam: getSelectedValues('mAlbumTeam'),
                 preWedDate: document.getElementById('mPreWedDate').value,
                 albumDueDate: document.getElementById('mAlbumDueDate').value,
                 videoDueDate: document.getElementById('mVideoDueDate').value,
