@@ -284,6 +284,9 @@
             font-size: 0.8rem;
             color: var(--text-muted);
             font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         input, select {
@@ -579,23 +582,6 @@
             display: none;
         }
 
-        /* Custom Tag Pills for Multi-select Display */
-        .member-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 5px;
-        }
-
-        .member-pill {
-            background: var(--badge-bg);
-            color: var(--badge-text);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.72rem;
-            font-weight: bold;
-        }
-
         .add-inline-btn {
             padding: 2px 6px;
             font-size: 0.75rem;
@@ -604,7 +590,6 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 6px;
         }
     </style>
 </head>
@@ -834,8 +819,11 @@
                         <input type="text" id="tmName" required placeholder="e.g. Alex Paul">
                     </div>
                     <div class="form-group">
-                        <label>Primary Role</label>
+                        <label>Primary Role *</label>
                         <select id="tmRole">
+                            <option value="Admin">Admin</option>
+                            <option value="Receptionist">Receptionist</option>
+                            <option value="Assistant">Assistant</option>
                             <option value="Camera">Cameraman / Photographer</option>
                             <option value="Video">Video Editor</option>
                             <option value="Album">Album Editor</option>
@@ -969,27 +957,33 @@
                             <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
                         </div>
 
-                        <!-- Team Selection Controls with Inline Add -->
+                        <!-- Dropdown Member Selection Controls with Inline Add -->
                         <div class="form-group">
                             <label>
-                                Camera Team (Hold Ctrl/Cmd for multiple)
-                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Camera')">+ Add New</button>
+                                Camera Team Member
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Camera')">+ Add New Member</button>
                             </label>
-                            <select id="mCameraTeam" multiple></select>
+                            <select id="mCameraTeam">
+                                <option value="">-- Select Member --</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>
-                                Video Editing Team (Hold Ctrl/Cmd for multiple)
-                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Video')">+ Add New</button>
+                                Video Editing Team Member
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Video')">+ Add New Member</button>
                             </label>
-                            <select id="mVideoTeam" multiple></select>
+                            <select id="mVideoTeam">
+                                <option value="">-- Select Member --</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>
-                                Album Editing Team (Hold Ctrl/Cmd for multiple)
-                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Album')">+ Add New</button>
+                                Album Editing Team Member
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Album')">+ Add New Member</button>
                             </label>
-                            <select id="mAlbumTeam" multiple></select>
+                            <select id="mAlbumTeam">
+                                <option value="">-- Select Member --</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -1223,9 +1217,9 @@
                 clientPhone: document.getElementById('clientPhone').value,
                 overallCost: parseFloat(document.getElementById('overallCost').value) || 0,
                 payments: paymentsList,
-                cameraTeam: [],
-                videoTeam: [],
-                albumTeam: [],
+                cameraTeam: '',
+                videoTeam: '',
+                albumTeam: '',
                 preWedDate: document.getElementById('preWedDate').value || '',
                 albumDueDate: autoDueDate,
                 videoDueDate: autoDueDate,
@@ -1302,13 +1296,13 @@
             const selects = ['mCameraTeam', 'mVideoTeam', 'mAlbumTeam'];
             selects.forEach(selId => {
                 const el = document.getElementById(selId);
-                const selectedVals = Array.from(el.selectedOptions).map(o => o.value);
-                el.innerHTML = '';
+                const currentVal = el.value;
+                el.innerHTML = '<option value="">-- Select Member --</option>';
                 teamMembers.forEach(m => {
                     const opt = document.createElement('option');
                     opt.value = m.name;
                     opt.innerText = `${m.name} (${m.role || 'All'})`;
-                    if (selectedVals.includes(m.name)) opt.selected = true;
+                    if (m.name === currentVal) opt.selected = true;
                     el.appendChild(opt);
                 });
             });
@@ -1338,9 +1332,9 @@
             }
 
             const assignedEvents = events.filter(e => {
-                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : (e.cameraTeam ? [e.cameraTeam] : []);
-                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [];
-                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [];
+                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : [e.cameraTeam];
+                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [e.videoTeam];
+                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [e.albumTeam];
                 return cam.includes(selectedMember) || vid.includes(selectedMember) || alb.includes(selectedMember);
             });
 
@@ -1350,9 +1344,9 @@
             }
 
             assignedEvents.forEach(e => {
-                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : (e.cameraTeam ? [e.cameraTeam] : []);
-                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [];
-                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [];
+                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : [e.cameraTeam];
+                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [e.videoTeam];
+                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [e.albumTeam];
 
                 const roles = [];
                 if (cam.includes(selectedMember)) roles.push('Camera Team');
@@ -1389,20 +1383,12 @@
             document.getElementById('mStatus').value = ev.statusProgress || 'BOOKED';
             document.getElementById('mCancelReason').value = ev.cancelReason || '';
 
-            // Dynamic Multiple Team Select population & values set
+            // Dropdown Team Selection Population
             populateTeamSelects();
 
-            const setSelectValues = (selId, vals) => {
-                const el = document.getElementById(selId);
-                const arr = Array.isArray(vals) ? vals : (vals ? [vals] : []);
-                Array.from(el.options).forEach(opt => {
-                    opt.selected = arr.includes(opt.value);
-                });
-            };
-
-            setSelectValues('mCameraTeam', ev.cameraTeam);
-            setSelectValues('mVideoTeam', ev.videoTeam);
-            setSelectValues('mAlbumTeam', ev.albumTeam);
+            document.getElementById('mCameraTeam').value = Array.isArray(ev.cameraTeam) ? (ev.cameraTeam[0] || '') : (ev.cameraTeam || '');
+            document.getElementById('mVideoTeam').value = Array.isArray(ev.videoTeam) ? (ev.videoTeam[0] || '') : (ev.videoTeam || '');
+            document.getElementById('mAlbumTeam').value = Array.isArray(ev.albumTeam) ? (ev.albumTeam[0] || '') : (ev.albumTeam || '');
 
             document.getElementById('mPreWedDate').value = ev.preWedDate || '';
             document.getElementById('mAlbumDueDate').value = ev.albumDueDate || '';
@@ -1554,19 +1540,14 @@
                 }
             });
 
-            const getSelectedValues = (selId) => {
-                const el = document.getElementById(selId);
-                return Array.from(el.selectedOptions).map(o => o.value);
-            };
-
             const updatedData = {
                 createdDate: document.getElementById('mCreatedDate').value,
                 eventName: document.getElementById('mEventName').value,
                 statusProgress: document.getElementById('mStatus').value,
                 cancelReason: document.getElementById('mStatus').value === 'CANCELED' ? document.getElementById('mCancelReason').value : '',
-                cameraTeam: getSelectedValues('mCameraTeam'),
-                videoTeam: getSelectedValues('mVideoTeam'),
-                albumTeam: getSelectedValues('mAlbumTeam'),
+                cameraTeam: document.getElementById('mCameraTeam').value,
+                videoTeam: document.getElementById('mVideoTeam').value,
+                albumTeam: document.getElementById('mAlbumTeam').value,
                 preWedDate: document.getElementById('mPreWedDate').value,
                 albumDueDate: document.getElementById('mAlbumDueDate').value,
                 videoDueDate: document.getElementById('mVideoDueDate').value,
