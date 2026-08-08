@@ -30,8 +30,6 @@
             --chart-grid: rgba(226, 232, 240, 0.6);
             --delivered-bg: rgba(16, 185, 129, 0.08);
             --delivered-border: #10b981;
-            --canceled-bg: rgba(239, 68, 68, 0.08);
-            --canceled-border: #ef4444;
         }
 
         :root[data-theme="dark"] {
@@ -51,8 +49,6 @@
             --chart-grid: rgba(51, 65, 85, 0.6);
             --delivered-bg: rgba(16, 185, 129, 0.15);
             --delivered-border: #059669;
-            --canceled-bg: rgba(239, 68, 68, 0.15);
-            --canceled-border: #dc2626;
         }
 
         * {
@@ -139,6 +135,7 @@
             background: var(--primary-hover);
         }
 
+        /* Auth Screen Styling */
         #authOverlay {
             position: fixed;
             top: 0;
@@ -327,25 +324,6 @@
             background: #1d4ed8;
         }
 
-        .btn-cancel {
-            background: #dc2626;
-        }
-
-        .btn-cancel:hover {
-            background: #991b1b;
-        }
-
-        .modal-footer-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .modal-footer-actions .btn {
-            margin-top: 0;
-            flex: 1;
-        }
-
         .table-controls {
             display: flex;
             justify-content: space-between;
@@ -388,12 +366,6 @@
         tr.row-delivered {
             background-color: var(--delivered-bg) !important;
             border-left: 4px solid var(--delivered-border);
-        }
-
-        tr.row-canceled {
-            background-color: var(--canceled-bg) !important;
-            border-left: 4px solid var(--canceled-border);
-            opacity: 0.85;
         }
 
         .status-tag {
@@ -928,10 +900,23 @@
                         </div>
                     </div>
 
-                    <div class="modal-footer-actions">
-                        <button type="button" class="btn btn-cancel" onclick="cancelEventFromModal()">🚫 Cancel Event</button>
-                        <button type="submit" class="btn">Update Event & Sync Cloud</button>
+                    <!-- Comments & Activity History -->
+                    <div class="payments-box" style="margin-top: 15px;">
+                        <h4>💬 Comments & Activity History</h4>
+                        
+                        <!-- Comment List -->
+                        <div id="commentsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Dynamic comment cards will render here -->
+                        </div>
+
+                        <!-- New Comment Input -->
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="newCommentInput" placeholder="Write a comment..." style="flex: 1;">
+                            <button type="button" class="btn btn-secondary" onclick="addCommentToEvent()" style="margin-top: 0; padding: 8px 16px;">Post</button>
+                        </div>
                     </div>
+
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Update Event & Sync Cloud</button>
                 </form>
             </div>
         </div>
@@ -965,18 +950,22 @@
         // 2. AUTHENTICATION STATE OBSERVER
         auth.onAuthStateChanged((user) => {
             if (user) {
+                // User is logged in
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
                 document.getElementById('userChip').innerText = `👤 ${user.email}`;
                 
+                // Attach real-time cloud listener
                 attachRealtimeListener();
             } else {
+                // User is logged out
                 document.getElementById('authOverlay').style.display = 'flex';
                 document.getElementById('appContent').style.display = 'none';
                 if (unsubscribeRealtime) unsubscribeRealtime();
             }
         });
 
+        // Toggle Login vs Signup
         function toggleAuthMode() {
             isSignUpMode = !isSignUpMode;
             document.getElementById('authTitle').innerText = isSignUpMode ? "CREATE USER" : "RED WINE STUDIO";
@@ -1097,7 +1086,8 @@
                 videoDueDate: autoDueDate,
                 statusProgress: 'BOOKED',
                 cancelReason: '',
-                slaAllowed: 30
+                slaAllowed: 30,
+                comments: []
             };
 
             await db.collection("events").add(newEvent);
@@ -1138,26 +1128,76 @@
 
             recalculateModalPayments();
             toggleCancelReasonField();
+
+            // Render Event Comments
+            renderComments(ev.comments || []);
+
             document.getElementById('eventModal').style.display = 'flex';
         }
 
-        async function cancelEventFromModal() {
-            const reason = prompt("Please enter the reason for cancelling this event:");
-            if (reason === null) return; // User pressed cancel on dialogue
+        function renderComments(comments) {
+            const container = document.getElementById('commentsList');
+            container.innerHTML = '';
 
-            if (!reason.trim()) {
-                alert("Cancellation reason is required to cancel the event.");
+            if (!comments || comments.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">No comments yet.</p>';
                 return;
             }
 
-            document.getElementById('mStatus').value = 'CANCELED';
-            document.getElementById('mCancelReason').value = reason.trim();
-            toggleCancelReasonField();
+            // Sort newest to oldest
+            comments.slice().reverse().forEach(c => {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 0.82rem;';
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; color: var(--accent);">
+                        <span>👤 ${c.user}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">${c.timestamp}</span>
+                    </div>
+                    <div style="color: var(--text-color);">${c.text}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
 
-            // Save changes directly to Cloud Firestore
-            const editForm = document.getElementById('editForm');
-            const submitEvent = new Event('submit', { cancelable: true });
-            editForm.dispatchEvent(submitEvent);
+        async function addCommentToEvent() {
+            const eventId = document.getElementById('modalEventId').value;
+            const input = document.getElementById('newCommentInput');
+            const commentText = input.value.trim();
+
+            if (!commentText) return;
+
+            const currentUser = auth.currentUser ? auth.currentUser.email : 'Unknown User';
+            const formattedDate = new Date().toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+
+            const newComment = {
+                user: currentUser,
+                text: commentText,
+                timestamp: formattedDate
+            };
+
+            try {
+                // Append comment to array in Firestore
+                await db.collection("events").doc(eventId).update({
+                    comments: firebase.firestore.FieldValue.arrayUnion(newComment)
+                });
+
+                input.value = '';
+                
+                // Update local model & re-render comments immediately
+                const ev = events.find(e => e.id === eventId);
+                if (ev) {
+                    if (!ev.comments) ev.comments = [];
+                    ev.comments.push(newComment);
+                    renderComments(ev.comments);
+                }
+            } catch (error) {
+                console.error("Error adding comment: ", error);
+                alert("Failed to save comment. Please try again.");
+            }
         }
 
         function addPaymentRow(amount = '', date = '', mode = 'GPay / PhonePe', ref = '') {
@@ -1278,19 +1318,14 @@
                 
                 const isDelivered = e.statusProgress === 'DELIVERED';
                 const isCanceled = e.statusProgress === 'CANCELED';
-                
-                if (isDelivered) {
-                    tr.classList.add('row-delivered');
-                } else if (isCanceled) {
-                    tr.classList.add('row-canceled');
-                }
+                if (isDelivered) tr.classList.add('row-delivered');
 
                 const totalPaid = calculateTotalPaid(e);
                 const remainingBal = (e.overallCost || 0) - totalPaid;
 
                 tr.innerHTML = `
                     <td>${e.createdDate || '-'}</td>
-                    <td><strong>${e.eventName}</strong> ${isDelivered ? '✅' : (isCanceled ? '🚫' : '')}</td>
+                    <td><strong>${e.eventName}</strong> ${isDelivered ? '✅' : ''}</td>
                     <td>${e.weddingDate || '-'}</td>
                     <td>${e.clientName || '-'}</td>
                     <td>${e.package}</td>
