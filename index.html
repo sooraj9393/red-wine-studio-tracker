@@ -30,6 +30,8 @@
             --chart-grid: rgba(226, 232, 240, 0.6);
             --delivered-bg: rgba(16, 185, 129, 0.08);
             --delivered-border: #10b981;
+            --canceled-bg: rgba(239, 68, 68, 0.08);
+            --canceled-border: #ef4444;
         }
 
         :root[data-theme="dark"] {
@@ -49,6 +51,8 @@
             --chart-grid: rgba(51, 65, 85, 0.6);
             --delivered-bg: rgba(16, 185, 129, 0.15);
             --delivered-border: #059669;
+            --canceled-bg: rgba(239, 68, 68, 0.15);
+            --canceled-border: #dc2626;
         }
 
         * {
@@ -135,7 +139,6 @@
             background: var(--primary-hover);
         }
 
-        /* Auth Screen Styling */
         #authOverlay {
             position: fixed;
             top: 0;
@@ -324,6 +327,25 @@
             background: #1d4ed8;
         }
 
+        .btn-cancel {
+            background: #dc2626;
+        }
+
+        .btn-cancel:hover {
+            background: #991b1b;
+        }
+
+        .modal-footer-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-footer-actions .btn {
+            margin-top: 0;
+            flex: 1;
+        }
+
         .table-controls {
             display: flex;
             justify-content: space-between;
@@ -366,6 +388,12 @@
         tr.row-delivered {
             background-color: var(--delivered-bg) !important;
             border-left: 4px solid var(--delivered-border);
+        }
+
+        tr.row-canceled {
+            background-color: var(--canceled-bg) !important;
+            border-left: 4px solid var(--canceled-border);
+            opacity: 0.85;
         }
 
         .status-tag {
@@ -900,7 +928,10 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Update Event & Sync Cloud</button>
+                    <div class="modal-footer-actions">
+                        <button type="button" class="btn btn-cancel" onclick="cancelEventFromModal()">🚫 Cancel Event</button>
+                        <button type="submit" class="btn">Update Event & Sync Cloud</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -934,22 +965,18 @@
         // 2. AUTHENTICATION STATE OBSERVER
         auth.onAuthStateChanged((user) => {
             if (user) {
-                // User is logged in
                 document.getElementById('authOverlay').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
                 document.getElementById('userChip').innerText = `👤 ${user.email}`;
                 
-                // Attach real-time cloud listener
                 attachRealtimeListener();
             } else {
-                // User is logged out
                 document.getElementById('authOverlay').style.display = 'flex';
                 document.getElementById('appContent').style.display = 'none';
                 if (unsubscribeRealtime) unsubscribeRealtime();
             }
         });
 
-        // Toggle Login vs Signup
         function toggleAuthMode() {
             isSignUpMode = !isSignUpMode;
             document.getElementById('authTitle').innerText = isSignUpMode ? "CREATE USER" : "RED WINE STUDIO";
@@ -1114,6 +1141,25 @@
             document.getElementById('eventModal').style.display = 'flex';
         }
 
+        async function cancelEventFromModal() {
+            const reason = prompt("Please enter the reason for cancelling this event:");
+            if (reason === null) return; // User pressed cancel on dialogue
+
+            if (!reason.trim()) {
+                alert("Cancellation reason is required to cancel the event.");
+                return;
+            }
+
+            document.getElementById('mStatus').value = 'CANCELED';
+            document.getElementById('mCancelReason').value = reason.trim();
+            toggleCancelReasonField();
+
+            // Save changes directly to Cloud Firestore
+            const editForm = document.getElementById('editForm');
+            const submitEvent = new Event('submit', { cancelable: true });
+            editForm.dispatchEvent(submitEvent);
+        }
+
         function addPaymentRow(amount = '', date = '', mode = 'GPay / PhonePe', ref = '') {
             const container = document.getElementById('paymentRowsContainer');
             const row = document.createElement('div');
@@ -1232,14 +1278,19 @@
                 
                 const isDelivered = e.statusProgress === 'DELIVERED';
                 const isCanceled = e.statusProgress === 'CANCELED';
-                if (isDelivered) tr.classList.add('row-delivered');
+                
+                if (isDelivered) {
+                    tr.classList.add('row-delivered');
+                } else if (isCanceled) {
+                    tr.classList.add('row-canceled');
+                }
 
                 const totalPaid = calculateTotalPaid(e);
                 const remainingBal = (e.overallCost || 0) - totalPaid;
 
                 tr.innerHTML = `
                     <td>${e.createdDate || '-'}</td>
-                    <td><strong>${e.eventName}</strong> ${isDelivered ? '✅' : ''}</td>
+                    <td><strong>${e.eventName}</strong> ${isDelivered ? '✅' : (isCanceled ? '🚫' : '')}</td>
                     <td>${e.weddingDate || '-'}</td>
                     <td>${e.clientName || '-'}</td>
                     <td>${e.package}</td>
