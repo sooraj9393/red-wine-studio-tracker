@@ -7,6 +7,9 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- SheetJS CDN for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -332,9 +335,28 @@
             background: #1d4ed8;
         }
 
+        .btn-excel {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.88rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-excel:hover {
+            background: #059669;
+        }
+
         .table-controls {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             gap: 15px;
             margin-bottom: 15px;
             flex-wrap: wrap;
@@ -582,14 +604,10 @@
             display: none;
         }
 
-        .add-inline-btn {
-            padding: 2px 6px;
-            font-size: 0.75rem;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .hint-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -783,7 +801,10 @@
             <div class="section-card">
                 <div class="table-controls">
                     <h2>📋 Studio Events List</h2>
-                    <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+                        <button type="button" class="btn-excel" onclick="exportEventsToExcel()">📊 Export All Events to Excel</button>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -957,33 +978,24 @@
                             <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
                         </div>
 
-                        <!-- Dropdown Member Selection Controls with Inline Add -->
+                        <!-- Multi-Select Team Selection Controls -->
                         <div class="form-group">
-                            <label>
-                                Camera Team Member
-                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Camera')">+ Add New Member</button>
-                            </label>
-                            <select id="mCameraTeam">
-                                <option value="">-- Select Member --</option>
+                            <label>Camera Team Member(s)</label>
+                            <select id="mCameraTeam" multiple>
                             </select>
+                            <span class="hint-text">Hold Ctrl/Cmd to select multiple members</span>
                         </div>
                         <div class="form-group">
-                            <label>
-                                Video Editing Team Member
-                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Video')">+ Add New Member</button>
-                            </label>
-                            <select id="mVideoTeam">
-                                <option value="">-- Select Member --</option>
+                            <label>Video Editing Team Member(s)</label>
+                            <select id="mVideoTeam" multiple>
                             </select>
+                            <span class="hint-text">Hold Ctrl/Cmd to select multiple members</span>
                         </div>
                         <div class="form-group">
-                            <label>
-                                Album Editing Team Member
-                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Album')">+ Add New Member</button>
-                            </label>
-                            <select id="mAlbumTeam">
-                                <option value="">-- Select Member --</option>
+                            <label>Album Editing Team Member(s)</label>
+                            <select id="mAlbumTeam" multiple>
                             </select>
+                            <span class="hint-text">Hold Ctrl/Cmd to select multiple members</span>
                         </div>
 
                         <div class="form-group">
@@ -1217,9 +1229,9 @@
                 clientPhone: document.getElementById('clientPhone').value,
                 overallCost: parseFloat(document.getElementById('overallCost').value) || 0,
                 payments: paymentsList,
-                cameraTeam: '',
-                videoTeam: '',
-                albumTeam: '',
+                cameraTeam: [],
+                videoTeam: [],
+                albumTeam: [],
                 preWedDate: document.getElementById('preWedDate').value || '',
                 albumDueDate: autoDueDate,
                 videoDueDate: autoDueDate,
@@ -1257,17 +1269,6 @@
             document.getElementById('teamMemberForm').reset();
         }
 
-        async function promptAddTeamMember(defaultRole = 'Camera') {
-            const name = prompt(`Enter new Team Member name (${defaultRole}):`);
-            if (name && name.trim()) {
-                await db.collection("team_members").add({
-                    name: name.trim(),
-                    role: defaultRole,
-                    phone: ''
-                });
-            }
-        }
-
         async function deleteTeamMember(id, e) {
             e.stopPropagation();
             if (confirm('Are you sure you want to remove this team member?')) {
@@ -1296,16 +1297,29 @@
             const selects = ['mCameraTeam', 'mVideoTeam', 'mAlbumTeam'];
             selects.forEach(selId => {
                 const el = document.getElementById(selId);
-                const currentVal = el.value;
-                el.innerHTML = '<option value="">-- Select Member --</option>';
+                const selectedValues = Array.from(el.selectedOptions).map(opt => opt.value);
+                el.innerHTML = '';
                 teamMembers.forEach(m => {
                     const opt = document.createElement('option');
                     opt.value = m.name;
                     opt.innerText = `${m.name} (${m.role || 'All'})`;
-                    if (m.name === currentVal) opt.selected = true;
+                    if (selectedValues.includes(m.name)) opt.selected = true;
                     el.appendChild(opt);
                 });
             });
+        }
+
+        function setMultiSelectValues(elementId, values) {
+            const selectEl = document.getElementById(elementId);
+            const valArray = Array.isArray(values) ? values : (values ? [values] : []);
+            Array.from(selectEl.options).forEach(opt => {
+                opt.selected = valArray.includes(opt.value);
+            });
+        }
+
+        function getMultiSelectValues(elementId) {
+            const selectEl = document.getElementById(elementId);
+            return Array.from(selectEl.selectedOptions).map(opt => opt.value);
         }
 
         function populateEmployeeFilter() {
@@ -1386,9 +1400,9 @@
             // Dropdown Team Selection Population
             populateTeamSelects();
 
-            document.getElementById('mCameraTeam').value = Array.isArray(ev.cameraTeam) ? (ev.cameraTeam[0] || '') : (ev.cameraTeam || '');
-            document.getElementById('mVideoTeam').value = Array.isArray(ev.videoTeam) ? (ev.videoTeam[0] || '') : (ev.videoTeam || '');
-            document.getElementById('mAlbumTeam').value = Array.isArray(ev.albumTeam) ? (ev.albumTeam[0] || '') : (ev.albumTeam || '');
+            setMultiSelectValues('mCameraTeam', ev.cameraTeam);
+            setMultiSelectValues('mVideoTeam', ev.videoTeam);
+            setMultiSelectValues('mAlbumTeam', ev.albumTeam);
 
             document.getElementById('mPreWedDate').value = ev.preWedDate || '';
             document.getElementById('mAlbumDueDate').value = ev.albumDueDate || '';
@@ -1545,9 +1559,9 @@
                 eventName: document.getElementById('mEventName').value,
                 statusProgress: document.getElementById('mStatus').value,
                 cancelReason: document.getElementById('mStatus').value === 'CANCELED' ? document.getElementById('mCancelReason').value : '',
-                cameraTeam: document.getElementById('mCameraTeam').value,
-                videoTeam: document.getElementById('mVideoTeam').value,
-                albumTeam: document.getElementById('mAlbumTeam').value,
+                cameraTeam: getMultiSelectValues('mCameraTeam'),
+                videoTeam: getMultiSelectValues('mVideoTeam'),
+                albumTeam: getMultiSelectValues('mAlbumTeam'),
                 preWedDate: document.getElementById('mPreWedDate').value,
                 albumDueDate: document.getElementById('mAlbumDueDate').value,
                 videoDueDate: document.getElementById('mVideoDueDate').value,
@@ -1806,6 +1820,67 @@
                     plugins: { legend: { labels: { color: textColor } } }
                 }
             });
+        }
+
+        /* --- EXCEL EXPORT MODULE --- */
+        function exportEventsToExcel() {
+            if (!events || events.length === 0) {
+                alert("No events to export.");
+                return;
+            }
+
+            const exportData = events.map(e => {
+                const totalPaid = calculateTotalPaid(e);
+                const remainingBal = (e.overallCost || 0) - totalPaid;
+
+                const camTeam = Array.isArray(e.cameraTeam) ? e.cameraTeam.join(', ') : (e.cameraTeam || '');
+                const vidTeam = Array.isArray(e.videoTeam) ? e.videoTeam.join(', ') : (e.videoTeam || '');
+                const albTeam = Array.isArray(e.albumTeam) ? e.albumTeam.join(', ') : (e.albumTeam || '');
+
+                const paymentsStr = (e.payments || []).map(p => `${p.date}: Rs.${p.amount} (${p.mode}${p.ref ? ' - ' + p.ref : ''})`).join(' | ');
+                const commentsStr = (e.comments || []).map(c => `[${c.timestamp}] ${c.user}: ${c.text}`).join(' | ');
+
+                return {
+                    "Booking Date": e.createdDate || '',
+                    "Event Name": e.eventName || '',
+                    "Wedding Date": e.weddingDate || '',
+                    "Channel": e.channel || '',
+                    "Owner": e.owner || '',
+                    "Package": e.package || '',
+                    "Addon Package": e.addonPackage || '',
+                    "Client Name": e.clientName || '',
+                    "Client Phone": e.clientPhone || '',
+                    "Camera Team": camTeam,
+                    "Video Editing Team": vidTeam,
+                    "Album Editing Team": albTeam,
+                    "Pre-Wed Shoot Date": e.preWedDate || '',
+                    "Album Due Date": e.albumDueDate || '',
+                    "Video Due Date": e.videoDueDate || '',
+                    "Overall Cost (Rs)": e.overallCost || 0,
+                    "Total Paid (Rs)": totalPaid,
+                    "Remaining Balance (Rs)": remainingBal,
+                    "Status": e.statusProgress || 'BOOKED',
+                    "Cancel Reason": e.cancelReason || '',
+                    "Payment Ledger History": paymentsStr,
+                    "Comments & Activity History": commentsStr
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Events Ledger");
+
+            // Auto-fit column widths
+            const max_widths = [];
+            exportData.forEach(row => {
+                Object.keys(row).forEach((key, idx) => {
+                    const valStr = String(row[key] || '');
+                    max_widths[idx] = Math.max(max_widths[idx] || key.length, valStr.length);
+                });
+            });
+            worksheet['!cols'] = max_widths.map(w => ({ wch: Math.min(w + 2, 50) }));
+
+            XLSX.writeFile(workbook, `RedWineStudio_Events_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
         loadSavedTheme();
