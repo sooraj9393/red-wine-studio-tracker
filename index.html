@@ -1,381 +1,1833 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Event & Payment Ledger</title>
-  <style>
-    :root {
-      --bg-dark: #0f172a;
-      --card-bg: #1e293b;
-      --input-bg: #0f172a;
-      --border-color: #334155;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent-yellow: #eab308;
-      --accent-yellow-hover: #ca8a04;
-      --accent-blue: #2563eb;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Wine Studio - Event Tracker & Ledger</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+    <style>
+        :root[data-theme="light"] {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #8b0000;
+            --primary-hover: #a00000;
+            --accent: #d97706;
+            --input-bg: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --badge-bg: #e0e7ff;
+            --badge-text: #3730a3;
+            --modal-overlay: rgba(0, 0, 0, 0.5);
+            --chart-grid: rgba(226, 232, 240, 0.6);
+            --delivered-bg: rgba(16, 185, 129, 0.08);
+            --delivered-border: #10b981;
+        }
 
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
+        :root[data-theme="dark"] {
+            --bg-color: #0d131f;
+            --card-bg: #161e2e;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #27354a;
+            --primary: #8b0000;
+            --primary-hover: #be123c;
+            --accent: #f59e0b;
+            --input-bg: #0f172a;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            --badge-bg: #312e81;
+            --badge-text: #c7d2fe;
+            --modal-overlay: rgba(0, 0, 0, 0.75);
+            --chart-grid: rgba(51, 65, 85, 0.6);
+            --delivered-bg: rgba(16, 185, 129, 0.15);
+            --delivered-border: #059669;
+        }
 
-    /* Modal Overlay & Card */
-    .modal-container {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      width: 100%;
-      max-width: 900px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      overflow: hidden;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.2s, color 0.2s;
+        }
 
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border-color);
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
 
-    .modal-header h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
 
-    .close-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
+        .brand h1 {
+            font-size: 1.8rem;
+            color: #b91c1c;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
 
-    .close-btn:hover {
-      color: var(--text-main);
-    }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #10b981;
+            margin-left: 8px;
+        }
 
-    .modal-body {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
+        .user-chip {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
 
-    /* Form Controls */
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+        .theme-toggle, .btn-logout {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
 
-    .form-group label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      font-weight: 500;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+        .btn-logout {
+            background: #b91c1c;
+            color: white;
+            border: none;
+        }
 
-    .form-control {
-      background-color: var(--input-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      color: var(--text-main);
-      padding: 10px 12px;
-      font-size: 0.9rem;
-      outline: none;
-      width: 100%;
-    }
+        .btn-logout:hover {
+            background: var(--primary-hover);
+        }
 
-    .form-control:focus {
-      border-color: var(--accent-blue);
-    }
+        /* Auth Screen Styling */
+        #authOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
 
-    select.form-control {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 16px;
-      padding-right: 32px;
-    }
+        .auth-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 35px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
 
-    /* Add Button Styling */
-    .btn-add {
-      background-color: var(--accent-yellow);
-      color: #000;
-      border: none;
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
+        .auth-card h2 {
+            justify-content: center;
+            color: #b91c1c;
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+        }
 
-    .btn-add:hover {
-      background-color: var(--accent-yellow-hover);
-    }
+        .auth-card p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
 
-    /* Custom Role Badge Header Bar */
-    .role-selection-bar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background-color: rgba(15, 23, 42, 0.6);
-      padding: 12px 16px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-    }
+        .auth-toggle-link {
+            color: var(--accent);
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: bold;
+        }
 
-    .role-badge {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 700;
-      background-color: var(--accent-blue);
-      color: #fff;
-    }
+        .auth-error {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            display: none;
+        }
 
-    /* Simple Modal for Adding Team Member */
-    .prompt-dialog {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.7);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
 
-    .prompt-dialog.active {
-      display: flex;
-    }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
 
-    .prompt-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      padding: 20px;
-      border-radius: 8px;
-      width: 320px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+        .stat-card h4 {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-    .prompt-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
+        .stat-card p {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 5px;
+            color: var(--accent);
+        }
 
-    .btn-secondary {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+        .section-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+        }
 
-    .btn-primary {
-      background: var(--accent-blue);
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
+        h2 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .chart-box {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 10px;
+            position: relative;
+            height: 210px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-box h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 155px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        input, select {
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 0.88rem;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: #b91c1c;
+        }
+
+        select[multiple] {
+            height: 90px;
+            padding: 5px;
+        }
+
+        .btn {
+            background: #b91c1c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: #2563eb;
+        }
+
+        .btn-secondary:hover {
+            background: #1d4ed8;
+        }
+
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: var(--input-bg);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        tbody tr {
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background-color: var(--input-bg);
+        }
+
+        tr.row-delivered {
+            background-color: var(--delivered-bg) !important;
+            border-left: 4px solid var(--delivered-border);
+        }
+
+        .status-tag {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: var(--badge-bg);
+            color: var(--badge-text);
+        }
+
+        .status-tag.delivered {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-tag.canceled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+        }
+
+        .actions-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.88rem;
+        }
+
+        .tab-btn.active {
+            background: #b91c1c;
+            color: white;
+            border-color: #b91c1c;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day-head {
+            text-align: center;
+            font-weight: bold;
+            color: var(--text-muted);
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+
+        .calendar-cell {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            min-height: 105px;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .calendar-cell .day-num {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .event-badge {
+            background: #b91c1c;
+            color: white;
+            font-size: 0.68rem;
+            padding: 3px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .event-badge.delivered { background: #10b981; }
+        .event-badge.canceled { background: #991b1b; text-decoration: line-through; opacity: 0.8; }
+        .event-badge.album-due { background: #7c3aed; color: #ffffff; font-weight: 600; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--modal-overlay);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 750px;
+            max-height: 88vh;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .payments-box {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .payments-box h4 {
+            margin-bottom: 12px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payment-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1.2fr 40px;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .remove-pay-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            height: 36px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .summary-banner {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .app-content {
+            display: none;
+        }
+
+        /* Custom Tag Pills for Multi-select Display */
+        .member-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        .member-pill {
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: bold;
+        }
+
+        .add-inline-btn {
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="modal-container">
-    <div class="modal-header">
-      <h2>Edit Event & Payment Ledger</h2>
-      <button class="close-btn">&times;</button>
+    <!-- LOGIN / REGISTER OVERLAY MODAL -->
+    <div id="authOverlay">
+        <div class="auth-card">
+            <h2 id="authTitle">RED WINE STUDIO</h2>
+            <p id="authSubtitle">Please sign in to access the studio dashboard</p>
+            
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Email Address</label>
+                    <input type="email" id="authEmail" placeholder="user@redwine.com" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Password</label>
+                    <input type="password" id="authPassword" placeholder="••••••••" required minlength="6">
+                </div>
+
+                <button type="submit" id="authSubmitBtn" class="btn" style="width: 100%; margin-top: 0;">Sign In</button>
+            </form>
+
+            <p id="authError" class="auth-error"></p>
+
+            <p style="margin-top: 20px; font-size: 0.85rem;">
+                <span id="authToggleText">Need an account?</span> 
+                <span class="auth-toggle-link" onclick="toggleAuthMode()" id="authToggleLink">Create New User</span>
+            </p>
+        </div>
     </div>
 
-    <div class="modal-body">
-      <!-- Role Control Selector Bar -->
-      <div class="role-selection-bar">
-        <label for="userRole">Active Role View:</label>
-        <select id="userRole" class="form-control" style="width: auto;" onchange="handleRoleChange()">
-          <option value="Admin">Admin</option>
-          <option value="Receptionist">Receptionist</option>
-          <option value="Assistant">Assistant</option>
-        </select>
-        <span class="role-badge" id="roleBadge">Admin</span>
-      </div>
+    <!-- MAIN APP WRAPPER -->
+    <div id="appContent" class="app-content">
+        <header>
+            <div class="brand">
+                <h1>RED WINE STUDIO</h1>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">
+                    Event Tracker & Multi-Payment Ledger 
+                    <span class="status-pill" id="syncStatus">🟢 Live Cloud Sync</span>
+                </p>
+            </div>
+            <div class="header-actions">
+                <span id="userChip" class="user-chip">👤 User</span>
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+                </button>
+                <button class="btn-logout" onclick="signOutUser()">Sign Out</button>
+            </div>
+        </header>
 
-      <!-- Top Form Row -->
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="bookingDate">Booking Date (Created Date)</label>
-          <input type="date" id="bookingDate" class="form-control" value="2026-08-07">
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab(event, 'trackerTab')">📕 Studio Dashboard & Events</button>
+            <button class="tab-btn" onclick="switchTab(event, 'teamTab')">👥 Team Members</button>
+            <button class="tab-btn" onclick="switchTab(event, 'employeeTab')">💼 Employee Dashboard</button>
+            <button class="tab-btn" onclick="switchTab(event, 'pendingTab')">⏳ Pending Deliverables</button>
+            <button class="tab-btn" onclick="switchTab(event, 'calendarTab')">📅 Event Calendar View</button>
         </div>
 
-        <div class="form-group">
-          <label for="eventName">Event Name</label>
-          <input type="text" id="eventName" class="form-control" value="smrithy">
+        <!-- Tab 1: Studio Dashboard + Events -->
+        <div id="trackerTab" class="tab-content">
+
+            <!-- 1. STUDIO ANALYTICS DASHBOARD -->
+            <div class="section-card">
+                <h2>📊 Studio Analytics Dashboard</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>TOTAL EVENTS</h4>
+                        <p id="stat-total">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>TOTAL REVENUE</h4>
+                        <p id="stat-revenue">Rs. 0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>TOTAL COLLECTED</h4>
+                        <p id="stat-advance">Rs. 0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>REMAINING BALANCE</h4>
+                        <p id="stat-balance">Rs. 0</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-box">
+                        <h3>📌 Status Breakdown</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>💰 Financial Trend (Area Graph)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>📅 Monthly Booked Events (Area Graph)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="monthlyEventsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. CREATE NEW EVENT FORM -->
+            <div class="section-card">
+                <h2>➕ Create New Event</h2>
+                <form id="eventForm" onsubmit="addEvent(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Booking Date (Created Date) *</label>
+                            <input type="date" id="createdDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Event Name *</label>
+                            <input type="text" id="eventName" required placeholder="e.g. Arshas Marriage">
+                        </div>
+                        <div class="form-group">
+                            <label>Wedding Date *</label>
+                            <input type="date" id="weddingDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Channel</label>
+                            <select id="channel">
+                                <option>Direct studio</option>
+                                <option>Phone call</option>
+                                <option>Instagram</option>
+                                <option>Referral</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Owner</label>
+                            <input type="text" id="owner" placeholder="Neeraj D Raj">
+                        </div>
+                        <div class="form-group">
+                            <label>Package</label>
+                            <select id="package">
+                                <option>Single Side Basic</option>
+                                <option>Both side premium</option>
+                                <option>Candid Photography</option>
+                                <option>Full Wedding Coverage</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Add-on Package</label>
+                            <input type="text" id="addonPackage" placeholder="Haldi, Heli-Cam, LED Wall">
+                        </div>
+                        <div class="form-group">
+                            <label>Client Name</label>
+                            <input type="text" id="clientName" placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label>Client Phone</label>
+                            <input type="tel" id="clientPhone" placeholder="+91...">
+                        </div>
+                        <div class="form-group">
+                            <label>Overall Cost (Rs.)</label>
+                            <input type="number" id="overallCost" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Booking Advance Paid (Rs.)</label>
+                            <input type="number" id="advancePaid" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Advance Payment Mode</label>
+                            <select id="advanceMode">
+                                <option>GPay / PhonePe</option>
+                                <option>Cash</option>
+                                <option>Bank Transfer</option>
+                                <option>Card</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Advance Reference / Txn ID</label>
+                            <input type="text" id="advanceRef" placeholder="e.g. UPI/12345678">
+                        </div>
+                        <div class="form-group">
+                            <label>Pre-Wed Shoot Date (Optional)</label>
+                            <input type="date" id="preWedDate">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">Save Event to Cloud</button>
+                </form>
+            </div>
+
+            <!-- 3. STUDIO EVENTS LIST TABLE -->
+            <div class="section-card">
+                <div class="table-controls">
+                    <h2>📋 Studio Events List</h2>
+                    <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Booking Date</th>
+                                <th>Event Name</th>
+                                <th>Wedding Date</th>
+                                <th>Client</th>
+                                <th>Package</th>
+                                <th>Overall Cost</th>
+                                <th>Total Paid</th>
+                                <th>Remaining Bal.</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trackerTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
 
-        <div class="form-group">
-          <label for="statusProgress">Status Progress</label>
-          <select id="statusProgress" class="form-control">
-            <option value="CUSTOMER SELECTION">CUSTOMER SELECTION</option>
-            <option value="IN PROGRESS">IN PROGRESS</option>
-            <option value="COMPLETED">COMPLETED</option>
-          </select>
-        </div>
-      </div>
+        <!-- Tab: Team Members Management -->
+        <div id="teamTab" class="section-card tab-content" style="display: none;">
+            <h2>👥 Team Members Directory</h2>
+            <form id="teamMemberForm" onsubmit="addTeamMember(event)" style="margin-bottom: 20px;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Member Name *</label>
+                        <input type="text" id="tmName" required placeholder="e.g. Alex Paul">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Role</label>
+                        <select id="tmRole">
+                            <option value="Camera">Cameraman / Photographer</option>
+                            <option value="Video">Video Editor</option>
+                            <option value="Album">Album Editor</option>
+                            <option value="All Rounder">All-Rounder</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="tmPhone" placeholder="+91...">
+                    </div>
+                </div>
+                <button type="submit" class="btn">+ Add Team Member</button>
+            </form>
 
-      <!-- Middle Form Row: Dropdowns with Add Feature -->
-      <div class="form-grid">
-        <!-- Camera Team Select -->
-        <div class="form-group">
-          <label>
-            Camera Team
-            <button type="button" class="btn-add" onclick="openAddDialog('cameraSelect')">+ Add New</button>
-          </label>
-          <select id="cameraSelect" class="form-control">
-            <option value="Neeraj D Raj (Camera)">Neeraj D Raj (Camera)</option>
-            <option value="veena (All Rounder)">veena (All Rounder)</option>
-            <option value="sulthan (Video)">sulthan (Video)</option>
-          </select>
-        </div>
-
-        <!-- Video Editing Team Select -->
-        <div class="form-group">
-          <label>
-            Video Editing Team
-            <button type="button" class="btn-add" onclick="openAddDialog('videoSelect')">+ Add New</button>
-          </label>
-          <select id="videoSelect" class="form-control">
-            <option value="Neeraj D Raj (Camera)">Neeraj D Raj (Camera)</option>
-            <option value="veena (All Rounder)">veena (All Rounder)</option>
-            <option value="sulthan (Video)">sulthan (Video)</option>
-          </select>
-        </div>
-
-        <!-- Album Editing Team Select -->
-        <div class="form-group">
-          <label>
-            Album Editing Team
-            <button type="button" class="btn-add" onclick="openAddDialog('albumSelect')">+ Add New</button>
-          </label>
-          <select id="albumSelect" class="form-control">
-            <option value="Neeraj D Raj (Camera)">Neeraj D Raj (Camera)</option>
-            <option value="veena (All Rounder)">veena (All Rounder)</option>
-            <option value="sulthan (Video)">sulthan (Video)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Bottom Form Row -->
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="preWedDate">Pre-Wed Shoot Date</label>
-          <input type="date" id="preWedDate" class="form-control" value="2026-07-22">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Phone</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teamMembersTableBody"></tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="form-group">
-          <label for="albumDueDate">Album Due Date</label>
-          <input type="date" id="albumDueDate" class="form-control" value="2026-08-29">
+        <!-- Tab: Employee Work Dashboard -->
+        <div id="employeeTab" class="section-card tab-content" style="display: none;">
+            <div class="table-controls">
+                <h2>💼 Employee Assignment Dashboard</h2>
+                <select id="employeeFilter" onchange="renderEmployeeDashboard()" style="width: 250px;">
+                    <option value="">-- Select Team Member --</option>
+                </select>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event Name</th>
+                            <th>Client</th>
+                            <th>Wedding Date</th>
+                            <th>Assigned Role(s)</th>
+                            <th>Album Due Date</th>
+                            <th>Video Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeDashboardTableBody"></tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="form-group">
-          <label for="videoDueDate">Video Due Date</label>
-          <input type="date" id="videoDueDate" class="form-control" value="2026-08-29">
+        <!-- Tab 2: What's Pending Today -->
+        <div id="pendingTab" class="section-card tab-content" style="display: none;">
+            <h2>⏳ Pending Deliverables & Follow-ups</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event Name</th>
+                            <th>Client</th>
+                            <th>Wedding Date</th>
+                            <th>Album Due Date</th>
+                            <th>Video Due Date</th>
+                            <th>Remaining Balance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingTableBody"></tbody>
+                </table>
+            </div>
         </div>
-      </div>
+
+        <!-- Tab 3: Interactive Calendar View -->
+        <div id="calendarTab" class="section-card tab-content" style="display: none;">
+            <div class="calendar-header">
+                <button class="btn" onclick="changeMonth(-1)" style="margin: 0;">◀ Prev</button>
+                <h2 id="calendarMonthTitle">Month Year</h2>
+                <button class="btn" onclick="changeMonth(1)" style="margin: 0;">Next ▶</button>
+            </div>
+
+            <div class="calendar-grid" id="calendarHead">
+                <div class="calendar-day-head">Sun</div>
+                <div class="calendar-day-head">Mon</div>
+                <div class="calendar-day-head">Tue</div>
+                <div class="calendar-day-head">Wed</div>
+                <div class="calendar-day-head">Thu</div>
+                <div class="calendar-day-head">Fri</div>
+                <div class="calendar-day-head">Sat</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid" style="margin-top: 5px;"></div>
+        </div>
+
+        <!-- Edit Event & Payment Modal -->
+        <div class="modal-overlay" id="eventModal" onclick="closeModalOnOverlay(event)">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Event & Payment Ledger</h3>
+                    <button class="close-modal" onclick="closeModal()">&times;</button>
+                </div>
+                <form id="editForm" onsubmit="saveModalChanges(event)">
+                    <input type="hidden" id="modalEventId">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Booking Date (Created Date)</label>
+                            <input type="date" id="mCreatedDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Event Name</label>
+                            <input type="text" id="mEventName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status Progress</label>
+                            <select id="mStatus" onchange="toggleCancelReasonField()">
+                                <option>BOOKED</option>
+                                <option>PRE-WED DONE</option>
+                                <option>WEDDING DONE</option>
+                                <option>CUSTOMER SELECTION</option>
+                                <option>EDITING DONE</option>
+                                <option>OUT FOR DELIVERY</option>
+                                <option>DELIVERED</option>
+                                <option>CANCELED</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="cancelReasonGroup" style="display: none;">
+                            <label>Cancellation Reason *</label>
+                            <input type="text" id="mCancelReason" placeholder="Reason for cancellation">
+                        </div>
+
+                        <!-- Team Selection Controls with Inline Add -->
+                        <div class="form-group">
+                            <label>
+                                Camera Team (Hold Ctrl/Cmd for multiple)
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Camera')">+ Add New</button>
+                            </label>
+                            <select id="mCameraTeam" multiple></select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                Video Editing Team (Hold Ctrl/Cmd for multiple)
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Video')">+ Add New</button>
+                            </label>
+                            <select id="mVideoTeam" multiple></select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                Album Editing Team (Hold Ctrl/Cmd for multiple)
+                                <button type="button" class="add-inline-btn" onclick="promptAddTeamMember('Album')">+ Add New</button>
+                            </label>
+                            <select id="mAlbumTeam" multiple></select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Pre-Wed Shoot Date</label>
+                            <input type="date" id="mPreWedDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Album Due Date</label>
+                            <input type="date" id="mAlbumDueDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Video Due Date</label>
+                            <input type="date" id="mVideoDueDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Overall Cost (Rs.)</label>
+                            <input type="number" id="mOverallCost" oninput="recalculateModalPayments()">
+                        </div>
+                    </div>
+
+                    <div class="payments-box">
+                        <h4>
+                            💳 Payment Installments Ledger
+                            <button type="button" class="btn btn-secondary" onclick="addPaymentRow()" style="padding: 4px 10px; margin: 0; font-size: 0.8rem;">+ Add Payment</button>
+                        </h4>
+                        <div id="paymentRowsContainer"></div>
+
+                        <div class="summary-banner">
+                            <div>Total Paid: <span id="mTotalPaidText" style="color: #10b981;">Rs. 0</span></div>
+                            <div>Remaining Balance: <span id="mRemainingBalText" style="color: #ef4444;">Rs. 0</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Comments & Activity History -->
+                    <div class="payments-box" style="margin-top: 15px;">
+                        <h4>💬 Comments & Activity History</h4>
+                        
+                        <!-- Comment List -->
+                        <div id="commentsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Dynamic comment cards will render here -->
+                        </div>
+
+                        <!-- New Comment Input -->
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="newCommentInput" placeholder="Write a comment..." style="flex: 1;">
+                            <button type="button" class="btn btn-secondary" onclick="addCommentToEvent()" style="margin-top: 0; padding: 8px 16px;">Post</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Update Event & Sync Cloud</button>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Add Member Prompt Dialog -->
-  <div class="prompt-dialog" id="promptDialog">
-    <div class="prompt-card">
-      <h3>Add New Member</h3>
-      <input type="text" id="newMemberInput" class="form-control" placeholder="Enter name (e.g. John Doe)">
-      <div class="prompt-actions">
-        <button class="btn-secondary" onclick="closeAddDialog()">Cancel</button>
-        <button class="btn-primary" onclick="confirmAddMember()">Add</button>
-      </div>
-    </div>
-  </div>
+    <script>
+        // 1. FIREBASE CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyDD6KHNyFKhZBisGh8MJNnnKG6p9TjrHOY",
+            authDomain: "red-wine-studio.firebaseapp.com",
+            projectId: "red-wine-studio",
+            storageBucket: "red-wine-studio.firebasestorage.app",
+            messagingSenderId: "225688453076",
+            appId: "1:225688453076:web:f51c533b759f944c602041",
+            measurementId: "G-4SZB4YHF1Z"
+        };
 
-  <script>
-    let currentTargetSelectId = null;
+        // Initialize Firebase Services
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-    function handleRoleChange() {
-      const selectedRole = document.getElementById('userRole').value;
-      const roleBadge = document.getElementById('roleBadge');
-      roleBadge.textContent = selectedRole;
+        let events = [];
+        let teamMembers = [];
+        let currentCalendarDate = new Date();
+        let chartInstances = {};
+        let isSignUpMode = false;
+        let unsubscribeRealtime = null;
+        let unsubscribeTeamRealtime = null;
 
-      // Role permission adjustment (e.g., Assistants cannot add team members)
-      const addButtons = document.querySelectorAll('.btn-add');
-      if (selectedRole === 'Assistant') {
-        addButtons.forEach(btn => btn.style.display = 'none');
-      } else {
-        addButtons.forEach(btn => btn.style.display = 'inline-block');
-      }
-    }
+        document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
 
-    function openAddDialog(selectId) {
-      currentTargetSelectId = selectId;
-      document.getElementById('promptDialog').classList.add('active');
-      document.getElementById('newMemberInput').focus();
-    }
+        // 2. AUTHENTICATION STATE OBSERVER
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is logged in
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                document.getElementById('userChip').innerText = `👤 ${user.email}`;
+                
+                // Attach real-time cloud listeners
+                attachRealtimeListener();
+                attachTeamRealtimeListener();
+            } else {
+                // User is logged out
+                document.getElementById('authOverlay').style.display = 'flex';
+                document.getElementById('appContent').style.display = 'none';
+                if (unsubscribeRealtime) unsubscribeRealtime();
+                if (unsubscribeTeamRealtime) unsubscribeTeamRealtime();
+            }
+        });
 
-    function closeAddDialog() {
-      document.getElementById('promptDialog').classList.remove('active');
-      document.getElementById('newMemberInput').value = '';
-      currentTargetSelectId = null;
-    }
+        // Toggle Login vs Signup
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('authTitle').innerText = isSignUpMode ? "CREATE USER" : "RED WINE STUDIO";
+            document.getElementById('authSubtitle').innerText = isSignUpMode ? "Register a new team account" : "Please sign in to access the studio dashboard";
+            document.getElementById('authSubmitBtn').innerText = isSignUpMode ? "Register User" : "Sign In";
+            document.getElementById('authToggleText').innerText = isSignUpMode ? "Already have an account?" : "Need an account?";
+            document.getElementById('authToggleLink').innerText = isSignUpMode ? "Sign In" : "Create New User";
+            document.getElementById('authError').style.display = 'none';
+        }
 
-    function confirmAddMember() {
-      const inputVal = document.getElementById('newMemberInput').value.trim();
-      if (inputVal && currentTargetSelectId) {
-        const selectElem = document.getElementById(currentTargetSelectId);
-        
-        // Create new option dynamic append
-        const newOption = document.createElement('option');
-        newOption.value = inputVal;
-        newOption.textContent = inputVal;
-        newOption.selected = true;
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const errEl = document.getElementById('authError');
+            errEl.style.display = 'none';
 
-        selectElem.appendChild(newOption);
-        closeAddDialog();
-      }
-    }
-  </script>
+            try {
+                if (isSignUpMode) {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                } else {
+                    await auth.signInWithEmailAndPassword(email, password);
+                }
+            } catch (err) {
+                errEl.innerText = err.message;
+                errEl.style.display = 'block';
+            }
+        }
+
+        function signOutUser() {
+            auth.signOut();
+        }
+
+        // 3. REAL-TIME CLOUD LISTENERS
+        function attachRealtimeListener() {
+            unsubscribeRealtime = db.collection("events").onSnapshot((snapshot) => {
+                events = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderAll();
+            }, (error) => {
+                console.error("Firebase Sync Error: ", error);
+                document.getElementById('syncStatus').innerText = '🔴 Sync Error';
+                document.getElementById('syncStatus').style.color = '#ef4444';
+            });
+        }
+
+        function attachTeamRealtimeListener() {
+            unsubscribeTeamRealtime = db.collection("team_members").onSnapshot((snapshot) => {
+                teamMembers = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderTeamMembers();
+                populateTeamSelects();
+                populateEmployeeFilter();
+                renderEmployeeDashboard();
+            }, (error) => {
+                console.error("Firebase Team Sync Error: ", error);
+            });
+        }
+
+        function renderAll() {
+            renderEvents();
+            renderPending();
+            renderCalendar();
+            updateStats();
+            renderCharts();
+            renderEmployeeDashboard();
+        }
+
+        function addDays(dateStr, days) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        }
+
+        function calculateTotalPaid(eventObj) {
+            if (!eventObj.payments) return 0;
+            return eventObj.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            document.getElementById('theme-icon').textContent = newTheme === 'light' ? '☀️' : '🌙';
+            document.getElementById('theme-text').textContent = newTheme === 'light' ? 'Light Mode' : 'Dark Mode';
+            localStorage.setItem('theme', newTheme);
+            renderCharts();
+        }
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('theme-icon').textContent = savedTheme === 'light' ? '☀️' : '🌙';
+            document.getElementById('theme-text').textContent = savedTheme === 'light' ? 'Light Mode' : 'Dark Mode';
+        }
+
+        async function addEvent(e) {
+            e.preventDefault();
+            const wDate = document.getElementById('weddingDate').value;
+            const autoDueDate = addDays(wDate, 30);
+            const initialAdv = parseFloat(document.getElementById('advancePaid').value) || 0;
+
+            const paymentsList = [];
+            if (initialAdv > 0) {
+                paymentsList.push({
+                    amount: initialAdv,
+                    date: document.getElementById('createdDate').value,
+                    mode: document.getElementById('advanceMode').value,
+                    ref: document.getElementById('advanceRef').value || 'Booking Advance'
+                });
+            }
+
+            const newEvent = {
+                createdDate: document.getElementById('createdDate').value || new Date().toISOString().split('T')[0],
+                eventName: document.getElementById('eventName').value,
+                weddingDate: wDate,
+                channel: document.getElementById('channel').value,
+                owner: document.getElementById('owner').value,
+                package: document.getElementById('package').value,
+                addonPackage: document.getElementById('addonPackage').value,
+                clientName: document.getElementById('clientName').value,
+                clientPhone: document.getElementById('clientPhone').value,
+                overallCost: parseFloat(document.getElementById('overallCost').value) || 0,
+                payments: paymentsList,
+                cameraTeam: [],
+                videoTeam: [],
+                albumTeam: [],
+                preWedDate: document.getElementById('preWedDate').value || '',
+                albumDueDate: autoDueDate,
+                videoDueDate: autoDueDate,
+                statusProgress: 'BOOKED',
+                cancelReason: '',
+                slaAllowed: 30,
+                comments: []
+            };
+
+            await db.collection("events").add(newEvent);
+            document.getElementById('eventForm').reset();
+            document.getElementById('createdDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        async function deleteEvent(id, e) {
+            e.stopPropagation();
+            if (confirm('Are you sure you want to delete this event from the cloud database?')) {
+                await db.collection("events").doc(id).delete();
+            }
+        }
+
+        /* --- TEAM MANAGEMENT MODULE LOGIC --- */
+        async function addTeamMember(e) {
+            e.preventDefault();
+            const name = document.getElementById('tmName').value.trim();
+            const role = document.getElementById('tmRole').value;
+            const phone = document.getElementById('tmPhone').value.trim();
+
+            if (!name) return;
+
+            await db.collection("team_members").add({
+                name, role, phone
+            });
+
+            document.getElementById('teamMemberForm').reset();
+        }
+
+        async function promptAddTeamMember(defaultRole = 'Camera') {
+            const name = prompt(`Enter new Team Member name (${defaultRole}):`);
+            if (name && name.trim()) {
+                await db.collection("team_members").add({
+                    name: name.trim(),
+                    role: defaultRole,
+                    phone: ''
+                });
+            }
+        }
+
+        async function deleteTeamMember(id, e) {
+            e.stopPropagation();
+            if (confirm('Are you sure you want to remove this team member?')) {
+                await db.collection("team_members").doc(id).delete();
+            }
+        }
+
+        function renderTeamMembers() {
+            const tbody = document.getElementById('teamMembersTableBody');
+            tbody.innerHTML = '';
+            teamMembers.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${m.name}</strong></td>
+                    <td>${m.role || 'All Rounder'}</td>
+                    <td>${m.phone || '-'}</td>
+                    <td>
+                        <button class="actions-btn" onclick="deleteTeamMember('${m.id}', event)">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateTeamSelects() {
+            const selects = ['mCameraTeam', 'mVideoTeam', 'mAlbumTeam'];
+            selects.forEach(selId => {
+                const el = document.getElementById(selId);
+                const selectedVals = Array.from(el.selectedOptions).map(o => o.value);
+                el.innerHTML = '';
+                teamMembers.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.name;
+                    opt.innerText = `${m.name} (${m.role || 'All'})`;
+                    if (selectedVals.includes(m.name)) opt.selected = true;
+                    el.appendChild(opt);
+                });
+            });
+        }
+
+        function populateEmployeeFilter() {
+            const select = document.getElementById('employeeFilter');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Select Team Member --</option>';
+            teamMembers.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.name;
+                opt.innerText = `${m.name} (${m.role || 'Member'})`;
+                if (m.name === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderEmployeeDashboard() {
+            const selectedMember = document.getElementById('employeeFilter').value;
+            const tbody = document.getElementById('employeeDashboardTableBody');
+            tbody.innerHTML = '';
+
+            if (!selectedMember) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Select a team member above to view assigned work.</td></tr>';
+                return;
+            }
+
+            const assignedEvents = events.filter(e => {
+                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : (e.cameraTeam ? [e.cameraTeam] : []);
+                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [];
+                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [];
+                return cam.includes(selectedMember) || vid.includes(selectedMember) || alb.includes(selectedMember);
+            });
+
+            if (assignedEvents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No assigned events found for ${selectedMember}.</td></tr>`;
+                return;
+            }
+
+            assignedEvents.forEach(e => {
+                const cam = Array.isArray(e.cameraTeam) ? e.cameraTeam : (e.cameraTeam ? [e.cameraTeam] : []);
+                const vid = Array.isArray(e.videoTeam) ? e.videoTeam : [];
+                const alb = Array.isArray(e.albumTeam) ? e.albumTeam : [];
+
+                const roles = [];
+                if (cam.includes(selectedMember)) roles.push('Camera Team');
+                if (vid.includes(selectedMember)) roles.push('Video Editor');
+                if (alb.includes(selectedMember)) roles.push('Album Editor');
+
+                const tr = document.createElement('tr');
+                tr.onclick = () => openModal(e.id);
+                tr.innerHTML = `
+                    <td><strong>${e.eventName}</strong></td>
+                    <td>${e.clientName || '-'}</td>
+                    <td>${e.weddingDate || '-'}</td>
+                    <td><span class="status-tag" style="background:var(--accent); color:#fff;">${roles.join(', ')}</span></td>
+                    <td>${e.albumDueDate || '-'}</td>
+                    <td>${e.videoDueDate || '-'}</td>
+                    <td><span class="status-tag ${e.statusProgress === 'DELIVERED' ? 'delivered' : ''}">${e.statusProgress || 'BOOKED'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleCancelReasonField() {
+            const statusVal = document.getElementById('mStatus').value;
+            document.getElementById('cancelReasonGroup').style.display = statusVal === 'CANCELED' ? 'flex' : 'none';
+        }
+
+        function openModal(id) {
+            const ev = events.find(e => e.id === id);
+            if (!ev) return;
+
+            document.getElementById('modalEventId').value = ev.id;
+            document.getElementById('mCreatedDate').value = ev.createdDate || new Date().toISOString().split('T')[0];
+            document.getElementById('mEventName').value = ev.eventName;
+            document.getElementById('mStatus').value = ev.statusProgress || 'BOOKED';
+            document.getElementById('mCancelReason').value = ev.cancelReason || '';
+
+            // Dynamic Multiple Team Select population & values set
+            populateTeamSelects();
+
+            const setSelectValues = (selId, vals) => {
+                const el = document.getElementById(selId);
+                const arr = Array.isArray(vals) ? vals : (vals ? [vals] : []);
+                Array.from(el.options).forEach(opt => {
+                    opt.selected = arr.includes(opt.value);
+                });
+            };
+
+            setSelectValues('mCameraTeam', ev.cameraTeam);
+            setSelectValues('mVideoTeam', ev.videoTeam);
+            setSelectValues('mAlbumTeam', ev.albumTeam);
+
+            document.getElementById('mPreWedDate').value = ev.preWedDate || '';
+            document.getElementById('mAlbumDueDate').value = ev.albumDueDate || '';
+            document.getElementById('mVideoDueDate').value = ev.videoDueDate || '';
+            document.getElementById('mOverallCost').value = ev.overallCost || 0;
+
+            const container = document.getElementById('paymentRowsContainer');
+            container.innerHTML = '';
+            (ev.payments || []).forEach(p => addPaymentRow(p.amount, p.date, p.mode, p.ref));
+
+            recalculateModalPayments();
+            toggleCancelReasonField();
+
+            // Render Event Comments
+            renderComments(ev.comments || []);
+
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function renderComments(comments) {
+            const container = document.getElementById('commentsList');
+            container.innerHTML = '';
+
+            if (!comments || comments.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">No comments yet.</p>';
+                return;
+            }
+
+            // Sort newest to oldest
+            comments.slice().reverse().forEach(c => {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: var(--card-bg); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 0.82rem;';
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; color: var(--accent);">
+                        <span>👤 ${c.user}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">${c.timestamp}</span>
+                    </div>
+                    <div style="color: var(--text-color);">${c.text}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function addCommentToEvent() {
+            const eventId = document.getElementById('modalEventId').value;
+            const input = document.getElementById('newCommentInput');
+            const commentText = input.value.trim();
+
+            if (!commentText) return;
+
+            const currentUser = auth.currentUser ? auth.currentUser.email : 'Unknown User';
+            const formattedDate = new Date().toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+
+            const newComment = {
+                user: currentUser,
+                text: commentText,
+                timestamp: formattedDate
+            };
+
+            try {
+                // Append comment to array in Firestore
+                await db.collection("events").doc(eventId).update({
+                    comments: firebase.firestore.FieldValue.arrayUnion(newComment)
+                });
+
+                input.value = '';
+                
+                // Update local model & re-render comments immediately
+                const ev = events.find(e => e.id === eventId);
+                if (ev) {
+                    if (!ev.comments) ev.comments = [];
+                    ev.comments.push(newComment);
+                    renderComments(ev.comments);
+                }
+            } catch (error) {
+                console.error("Error adding comment: ", error);
+                alert("Failed to save comment. Please try again.");
+            }
+        }
+
+        function addPaymentRow(amount = '', date = '', mode = 'GPay / PhonePe', ref = '') {
+            const container = document.getElementById('paymentRowsContainer');
+            const row = document.createElement('div');
+            row.className = 'payment-row';
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            row.innerHTML = `
+                <input type="number" placeholder="Amount (Rs.)" class="p-amount" value="${amount}" oninput="recalculateModalPayments()" required>
+                <input type="date" class="p-date" value="${date || todayStr}" required>
+                <select class="p-mode">
+                    <option ${mode==='GPay / PhonePe'?'selected':''}>GPay / PhonePe</option>
+                    <option ${mode==='Cash'?'selected':''}>Cash</option>
+                    <option ${mode==='Bank Transfer'?'selected':''}>Bank Transfer</option>
+                    <option ${mode==='Card'?'selected':''}>Card</option>
+                </select>
+                <input type="text" placeholder="Ref/Txn ID" class="p-ref" value="${ref}">
+                <button type="button" class="remove-pay-btn" onclick="removePaymentRow(this)">&times;</button>
+            `;
+            container.appendChild(row);
+            recalculateModalPayments();
+        }
+
+        function removePaymentRow(btn) {
+            btn.parentElement.remove();
+            recalculateModalPayments();
+        }
+
+        function recalculateModalPayments() {
+            const overallCost = parseFloat(document.getElementById('mOverallCost').value) || 0;
+            const amountInputs = document.querySelectorAll('.p-amount');
+            let totalPaid = 0;
+            amountInputs.forEach(input => {
+                totalPaid += parseFloat(input.value) || 0;
+            });
+
+            const remaining = overallCost - totalPaid;
+            document.getElementById('mTotalPaidText').innerText = `Rs. ${totalPaid.toLocaleString()}`;
+            document.getElementById('mRemainingBalText').innerText = `Rs. ${remaining.toLocaleString()}`;
+            document.getElementById('mRemainingBalText').style.color = remaining <= 0 ? '#10b981' : '#ef4444';
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        function closeModalOnOverlay(e) {
+            if (e.target.id === 'eventModal') closeModal();
+        }
+
+        async function saveModalChanges(e) {
+            e.preventDefault();
+            const id = document.getElementById('modalEventId').value;
+            
+            const rows = document.querySelectorAll('.payment-row');
+            const updatedPayments = [];
+            rows.forEach(r => {
+                const amt = parseFloat(r.querySelector('.p-amount').value) || 0;
+                if (amt > 0) {
+                    updatedPayments.push({
+                        amount: amt,
+                        date: r.querySelector('.p-date').value,
+                        mode: r.querySelector('.p-mode').value,
+                        ref: r.querySelector('.p-ref').value
+                    });
+                }
+            });
+
+            const getSelectedValues = (selId) => {
+                const el = document.getElementById(selId);
+                return Array.from(el.selectedOptions).map(o => o.value);
+            };
+
+            const updatedData = {
+                createdDate: document.getElementById('mCreatedDate').value,
+                eventName: document.getElementById('mEventName').value,
+                statusProgress: document.getElementById('mStatus').value,
+                cancelReason: document.getElementById('mStatus').value === 'CANCELED' ? document.getElementById('mCancelReason').value : '',
+                cameraTeam: getSelectedValues('mCameraTeam'),
+                videoTeam: getSelectedValues('mVideoTeam'),
+                albumTeam: getSelectedValues('mAlbumTeam'),
+                preWedDate: document.getElementById('mPreWedDate').value,
+                albumDueDate: document.getElementById('mAlbumDueDate').value,
+                videoDueDate: document.getElementById('mVideoDueDate').value,
+                overallCost: parseFloat(document.getElementById('mOverallCost').value) || 0,
+                payments: updatedPayments
+            };
+
+            await db.collection("events").doc(id).update(updatedData);
+            closeModal();
+        }
+
+        function switchTab(evt, tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).style.display = 'block';
+            evt.currentTarget.classList.add('active');
+        }
+
+        function updateStats() {
+            const activeEvents = events.filter(e => e.statusProgress !== 'CANCELED');
+            const totalRev = activeEvents.reduce((sum, e) => sum + (e.overallCost || 0), 0);
+            const totalPaid = activeEvents.reduce((sum, e) => sum + calculateTotalPaid(e), 0);
+            
+            document.getElementById('stat-total').innerText = events.length;
+            document.getElementById('stat-revenue').innerText = `Rs. ${totalRev.toLocaleString()}`;
+            document.getElementById('stat-advance').innerText = `Rs. ${totalPaid.toLocaleString()}`;
+            document.getElementById('stat-balance').innerText = `Rs. ${(totalRev - totalPaid).toLocaleString()}`;
+        }
+
+        function renderEvents() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const tbody = document.getElementById('trackerTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = events.filter(e => 
+                (e.eventName && e.eventName.toLowerCase().includes(query)) || 
+                (e.clientName && e.clientName.toLowerCase().includes(query))
+            );
+
+            filtered.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => openModal(e.id);
+                
+                const isDelivered = e.statusProgress === 'DELIVERED';
+                const isCanceled = e.statusProgress === 'CANCELED';
+                if (isDelivered) tr.classList.add('row-delivered');
+
+                const totalPaid = calculateTotalPaid(e);
+                const remainingBal = (e.overallCost || 0) - totalPaid;
+
+                tr.innerHTML = `
+                    <td>${e.createdDate || '-'}</td>
+                    <td><strong>${e.eventName}</strong> ${isDelivered ? '✅' : ''}</td>
+                    <td>${e.weddingDate || '-'}</td>
+                    <td>${e.clientName || '-'}</td>
+                    <td>${e.package}</td>
+                    <td>Rs. ${(e.overallCost || 0).toLocaleString()}</td>
+                    <td style="color: #10b981; font-weight: bold;">Rs. ${totalPaid.toLocaleString()}</td>
+                    <td style="color: ${remainingBal <= 0 ? '#10b981' : '#ef4444'}; font-weight: bold;">Rs. ${remainingBal.toLocaleString()}</td>
+                    <td><span class="status-tag ${isDelivered ? 'delivered' : (isCanceled ? 'canceled' : '')}">${e.statusProgress || 'BOOKED'}</span></td>
+                    <td>
+                        <div class="actions-cell">
+                            <button class="actions-btn" onclick="deleteEvent('${e.id}', event)">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPending() {
+            const tbody = document.getElementById('pendingTableBody');
+            tbody.innerHTML = '';
+
+            const pendingEvents = events.filter(e => e.statusProgress !== 'DELIVERED' && e.statusProgress !== 'CANCELED');
+
+            pendingEvents.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => openModal(e.id);
+                const totalPaid = calculateTotalPaid(e);
+                const remaining = (e.overallCost || 0) - totalPaid;
+
+                tr.innerHTML = `
+                    <td><strong>${e.eventName}</strong></td>
+                    <td>${e.clientName || '-'}</td>
+                    <td>${e.weddingDate || '-'}</td>
+                    <td>${e.albumDueDate || '-'}</td>
+                    <td>${e.videoDueDate || '-'}</td>
+                    <td style="color: #ef4444; font-weight: bold;">Rs. ${remaining.toLocaleString()}</td>
+                    <td><span class="status-tag">${e.statusProgress || 'BOOKED'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('calendarMonthTitle').innerText = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                grid.appendChild(document.createElement('div'));
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell';
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                cell.innerHTML = `<span class="day-num">${d}</span>`;
+
+                const weddingEvents = events.filter(e => e.weddingDate === dateStr);
+                weddingEvents.forEach(ev => {
+                    const badge = document.createElement('div');
+                    const isDelivered = ev.statusProgress === 'DELIVERED';
+                    const isCanceled = ev.statusProgress === 'CANCELED';
+                    badge.className = `event-badge ${isDelivered ? 'delivered' : (isCanceled ? 'canceled' : '')}`;
+                    badge.innerText = `💍 ${ev.eventName}`;
+                    badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
+                    cell.appendChild(badge);
+                });
+
+                const albumDueEvents = events.filter(e => e.albumDueDate === dateStr);
+                albumDueEvents.forEach(ev => {
+                    const badge = document.createElement('div');
+                    badge.className = `event-badge album-due`;
+                    badge.innerText = `📖 Album Due: ${ev.eventName}`;
+                    badge.onclick = (e) => { e.stopPropagation(); openModal(ev.id); };
+                    cell.appendChild(badge);
+                });
+
+                grid.appendChild(cell);
+            }
+        }
+
+        function renderCharts() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#f8fafc' : '#1e293b';
+            const gridColor = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
+
+            if (chartInstances.status) chartInstances.status.destroy();
+            if (chartInstances.revenue) chartInstances.revenue.destroy();
+            if (chartInstances.monthlyEvents) chartInstances.monthlyEvents.destroy();
+
+            const statusCounts = {};
+            events.forEach(e => {
+                const st = e.statusProgress || 'BOOKED';
+                statusCounts[st] = (statusCounts[st] || 0) + 1;
+            });
+
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            chartInstances.status = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b', '#ef4444'],
+                        borderWidth: 2,
+                        borderColor: isDark ? '#161e2e' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: textColor, font: { size: 10 } } } }
+                }
+            });
+
+            const monthlyData = {};
+            events.forEach(e => {
+                if (!e.weddingDate) return;
+                const monthKey = e.weddingDate.substring(0, 7);
+                if (!monthlyData[monthKey]) monthlyData[monthKey] = { revenue: 0, collected: 0, count: 0 };
+                
+                if (e.statusProgress !== 'CANCELED') {
+                    const cost = e.overallCost || 0;
+                    const paid = calculateTotalPaid(e);
+                    monthlyData[monthKey].revenue += cost;
+                    monthlyData[monthKey].collected += paid;
+                }
+                monthlyData[monthKey].count += 1;
+            });
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+
+            const ctxRev = document.getElementById('revenueChart').getContext('2d');
+            chartInstances.revenue = new Chart(ctxRev, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [
+                        { 
+                            label: 'Overall Cost', 
+                            data: sortedMonths.map(m => monthlyData[m].revenue), 
+                            borderColor: '#3b82f6', 
+                            backgroundColor: 'rgba(59, 130, 246, 0.25)', 
+                            fill: true,
+                            tension: 0.3 
+                        },
+                        { 
+                            label: 'Total Collected', 
+                            data: sortedMonths.map(m => monthlyData[m].collected), 
+                            borderColor: '#10b981', 
+                            backgroundColor: 'rgba(16, 185, 129, 0.25)', 
+                            fill: true,
+                            tension: 0.3 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true }
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+
+            const ctxEv = document.getElementById('monthlyEventsChart').getContext('2d');
+            chartInstances.monthlyEvents = new Chart(ctxEv, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Events',
+                        data: sortedMonths.map(m => monthlyData[m].count),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.25)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor, precision: 0 }, grid: { color: gridColor }, beginAtZero: true }
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+        }
+
+        loadSavedTheme();
+    </script>
 </body>
 </html>
