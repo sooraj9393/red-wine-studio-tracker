@@ -573,37 +573,6 @@
         .app-content {
             display: none;
         }
-        /* Status Filter Styling */
-.table-controls select {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background-color: var(--bg-card, #fff);
-  color: var(--text-color, #333);
-  font-size: 14px;
-}
-
-/* Progress Bar Styling */
-.progress-container {
-  width: 100%;
-  min-width: 80px;
-  background-color: #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-  height: 16px;
-  margin: 0 auto;
-}
-
-.progress-bar {
-  height: 100%;
-  background-color: #722f37; /* Theme accent */
-  color: #fff;
-  font-size: 10px;
-  font-weight: bold;
-  text-align: center;
-  line-height: 16px;
-  transition: width 0.3s ease;
-}
     </style>
 </head>
 <body>
@@ -796,28 +765,7 @@
                     <h2>📋 Studio Events List</h2>
                     <input type="text" id="searchInput" oninput="renderEvents()" placeholder="🔍 Search event or client..." style="width: 250px;">
                 </div>
-                <div class="table-controls">
-  <!-- Status Filter Controls -->
-<div class="filter-container">
-  <label for="statusFilter">Filter by Status:</label>
-  <select id="statusFilter" onchange="filterEvents()">
-    <option value="all">All Events</option>
-    <option value="Upcoming">Upcoming</option>
-    <option value="In Progress">In Progress</option>
-    <option value="Completed">Completed</option>
-    <option value="Cancelled">Cancelled</option>
-  </select>
-</div>
 
-<!-- Inside your Event Card / List Item Template -->
-<div class="event-card" data-status="In Progress">
-  <h3>Event Title</h3>
-  
-  <!-- Progress Bar Container -->
-  <div class="progress-container">
-    <div class="progress-bar" style="width: 65%;">65%</div>
-  </div>
-</div>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1586,22 +1534,6 @@
         }
 
         loadSavedTheme();
-        // Filter Events Function
-function filterEvents() {
-  const selectedStatus = document.getElementById('statusFilter').value;
-  const rows = document.querySelectorAll('#eventsTableBody tr');
-
-  rows.forEach(row => {
-    // Reads status from data attribute or cell text
-    const statusCell = row.cells[4]?.innerText || row.getAttribute('data-status');
-    
-    if (selectedStatus === 'all' || (statusCell && statusCell.includes(selectedStatus))) {
-      row.style.display = '';
-    } else {
-      row.style.display = 'none';
-    }
-  });
-}
     </script>
 </body>
 </html>
