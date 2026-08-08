@@ -905,6 +905,41 @@
             </div>
         </div>
     </div>
+    <!-- Inside #editModal grid -->
+<div class="form-group">
+  <label>Wedding Date</label>
+  <input type="date" id="editWeddingDate" class="form-control" />
+</div>
+
+<!-- Modal Actions Footer -->
+<div class="modal-footer-actions" style="display: flex; gap: 10px; margin-top: 15px;">
+  <button type="button" class="btn btn-danger-outline" onclick="openCancelModal()">
+    🚫 Cancel Event
+  </button>
+  <button type="button" class="btn btn-primary" onclick="updateEventAndSync()" style="flex: 1;">
+    Update Event & Sync Cloud
+  </button>
+</div>
+    <!-- Cancel Reason Modal -->
+<div id="cancelModal" class="modal" style="display: none;">
+  <div class="modal-content dark-theme">
+    <span class="close-btn" onclick="closeCancelModal()">&times;</span>
+    <h3>Cancel Event</h3>
+    <p>Please provide a reason for cancelling this event:</p>
+    
+    <div class="form-group">
+      <textarea id="cancelReasonInput" class="form-control" rows="3" placeholder="Enter reason for cancellation..."></textarea>
+    </div>
+    
+    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+      <button class="btn btn-secondary" onclick="closeCancelModal()">Keep Event</button>
+      <button class="btn btn-danger" onclick="confirmCancelEvent()">Confirm Cancellation</button>
+    </div>
+  </div>
+</div>
+
+    
+    
 
     <script>
         // 1. FIREBASE CONFIGURATION
@@ -1448,6 +1483,118 @@
         }
 
         loadSavedTheme();
+        let currentEditingEventId = null;
+
+// Populating the Edit Modal (include Wedding Date)
+function populateEditModal(eventData) {
+  currentEditingEventId = eventData.id;
+  
+  document.getElementById('editWeddingDate').value = eventData.weddingDate || '';
+  // ... populate other fields (event name, pre-wed date, etc.)
+}
+
+// Cancel Modal Handlers
+function openCancelModal() {
+  document.getElementById('cancelReasonInput').value = '';
+  document.getElementById('cancelModal').style.display = 'block';
+}
+
+function closeCancelModal() {
+  document.getElementById('cancelModal').style.display = 'none';
+}
+
+async function confirmCancelEvent() {
+  const reason = document.getElementById('cancelReasonInput').value.trim();
+  if (!reason) {
+    alert('Please enter a cancellation reason.');
+    return;
+  }
+
+  try {
+    // Firebase Firestore Update
+    await db.collection('events').doc(currentEditingEventId).update({
+      status: 'CANCELLED',
+      cancelReason: reason,
+      cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    closeCancelModal();
+    closeEditModal();
+    alert('Event cancelled successfully.');
+    loadEventsList(); // Refresh list view
+  } catch (err) {
+    console.error("Error cancelling event:", err);
+    alert('Failed to cancel event: ' + err.message);
+  }
+}
+        // Helper: Calculate Status Progress Percentage
+function getStatusProgress(status) {
+  const statusMap = {
+    'BOOKED': 20,
+    'PRE_WED_DONE': 40,
+    'WEDDING_DONE': 60,
+    'ALBUM_DELIVERED': 80,
+    'DELIVERED': 100,
+    'CANCELLED': 0
+  };
+  return statusMap[status] || 0;
+}
+
+// Helper: Calculate Payment Progress Percentage
+function getPaymentProgress(totalPaid, overallCost) {
+  if (!overallCost || overallCost <= 0) return 0;
+  const percentage = Math.round((totalPaid / overallCost) * 100);
+  return Math.min(percentage, 100); // Cap at 100%
+}
+
+// Render Progress Bar HTML
+function renderProgressBar(percentage, colorClass = 'bg-primary') {
+  return `
+    <div class="progress-container" style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 4px;">
+      <div class="progress-bar ${colorClass}" style="width: ${percentage}%; height: 100%; transition: width 0.3s ease;"></div>
+    </div>
+    <span style="font-size: 11px; color: #a0aec0;">${percentage}%</span>
+  `;
+}
+
+// Inside your Event Table Row Rendering Function:
+function renderEventRow(doc) {
+  const data = doc.data();
+  const statusPct = getStatusProgress(data.status);
+  const paymentPct = getPaymentProgress(data.totalPaid || 0, data.overallCost || 1);
+  
+  const paymentBarColor = paymentPct === 100 ? '#48bb78' : '#3182ce'; // Green if fully paid, Blue otherwise
+  const statusBarColor = data.status === 'CANCELLED' ? '#e53e3e' : '#e53e3e';
+
+  return `
+    <tr>
+      <td>${data.eventName}</td>
+      <td>${data.weddingDate || 'N/A'}</td>
+      
+      <!-- Event Progress Column -->
+      <td>
+        <div>${data.status}</div>
+        <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden; width: 100px; margin-top: 4px;">
+          <div style="width: ${statusPct}%; height: 100%; background: ${statusBarColor};"></div>
+        </div>
+      </td>
+      
+      <!-- Payment Progress Column -->
+      <td>
+        <div>Rs. ${data.totalPaid || 0} / ${data.overallCost || 0}</div>
+        <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden; width: 100px; margin-top: 4px;">
+          <div style="width: ${paymentPct}%; height: 100%; background: ${paymentBarColor};"></div>
+        </div>
+        <span style="font-size: 10px; color: #a0aec0;">${paymentPct}% Paid</span>
+      </td>
+      
+      <td>
+        <button onclick="openEditModal('${doc.id}')">Edit</button>
+      </td>
+    </tr>
+  `;
+}
+        
     </script>
 </body>
 </html>
